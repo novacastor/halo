@@ -1,0 +1,12 @@
+{
+  "name": "local-search-engine",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "sqlite3",
+    {
+      "name": "imgui",
+      "features": ["glfw-binding", "opengl3-binding"]
+    },
+    "glfw3"
+  ]
+}
