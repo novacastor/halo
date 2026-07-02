@@ -1,4 +1,5 @@
 #include "crawler.hpp"
+#include "tokenizer.hpp"
 #include <iostream>
 #include <filesystem>
 #include <fstream>
@@ -21,35 +22,30 @@ const unordered_set<string> FOLDER_BLACKLIST = {
     ".git", "build", ".vscode", "node_modules"
 };
 
-int open_file(const string &path) {
+
+string open_file(const string &path) {
     ifstream file(path);
     if(!file.is_open()) {
         cerr<<"Can't open file (Doesn't exist or Permission denied)\n";
-        return 0;
+        return "";
     }
-
+    
     stringstream buffer;
     buffer<<file.rdbuf();
     string contents = buffer.str();
-
+    
     file.close();
-
-    // cout << "--- Memory Buffer Content Start ---\n";
-    // cout <<contents;
-    // cout << "--- Memory Buffer Content End ---\n";
-    // cout << "Total bytes loaded: " << contents.size() << " bytes.\n";
-    return contents.size();
+    
+    return contents;
 }
 void run_crawler (const string &target_path) {
     auto start_time = chrono::high_resolution_clock::now();
     
     fs::path root_path(target_path);
     int total_files_opened = 0, total_content_size = 0;
-
-    for(auto it = fs::recursive_directory_iterator(
-        root_path, fs::directory_options::skip_permission_denied
-    ); 
-    it != fs::end(it); ++it) {
+    
+    cout<<"Tokens Parsed Start: ";
+    for(auto it = fs::recursive_directory_iterator(root_path, fs::directory_options::skip_permission_denied); it != fs::end(it); ++it) {
         const auto &entry = *it;
 
         if(entry.is_directory()) {
@@ -67,14 +63,32 @@ void run_crawler (const string &target_path) {
 
         string absolute_path = fs::absolute(entry.path()).string();
 
-        total_content_size += open_file(absolute_path);
+        string file_contents = open_file(absolute_path);
+
+        if(!file_contents.empty()) {
+            auto tokens = Engine::Tokenizer::tokenize(file_contents);
+
+            for(const auto &token: tokens) {
+                cout<<token.token<<" ";
+            }
+            cout<<endl;
+        }
+
+        total_content_size += file_contents.size();
         total_files_opened++;
     }
 
     auto end_time = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
 
+    cout<<"Tokens Parsed End: ";
+
     cout << "Execution Time: " << duration << " microseconds.\n";
     cout << "Total Files opened: " << total_files_opened << endl;
     cout << "Total Data processed: " << total_content_size << " bytes " << endl;
 }
+
+/*
+cmake --build build
+./build/search_engine
+*/

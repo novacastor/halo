@@ -19,6 +19,7 @@ add_executable(
     search_engine 
     src/main.cpp
     src/crawler.cpp    
+    src/tokenizer.cpp
 )
 
 # Link everything

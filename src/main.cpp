@@ -1,10 +1,15 @@
 #include "crawler.hpp"
+#include "tokenizer.hpp"
 #include <iostream>
 #include <sqlite3.h>
 #include <imgui.h>
 using namespace std;
 
 int main() {
+    
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
     std::cout << "========================================" << "\n";
     std::cout << "SQLite Version: " << sqlite3_libversion() << "\n";
 
@@ -18,7 +23,9 @@ int main() {
     ImGui::DestroyContext();
 
     cout<<"crawler test starting"<<endl;
-    string file_path = "/home";
+    string file_path = "/home/salik/programming/cpp/dsa/codeforces/contests";
     run_crawler(file_path);
+
+    
     return 0;
 }
