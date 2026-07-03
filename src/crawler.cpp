@@ -1,5 +1,6 @@
 #include "crawler.hpp"
 #include "tokenizer.hpp"
+#include "database.hpp"
 #include <iostream>
 #include <filesystem>
 #include <fstream>
@@ -40,6 +41,13 @@ string open_file(const string &path) {
 }
 void run_crawler (const string &target_path) {
     auto start_time = chrono::high_resolution_clock::now();
+
+    Engine::Database db("test.db");
+
+    if(!db.init()) {
+        cout << "db initializtion failed" << endl;
+        return;
+    }
     
     fs::path root_path(target_path);
     int total_files_opened = 0, total_content_size = 0;
@@ -67,16 +75,26 @@ void run_crawler (const string &target_path) {
 
         if(!file_contents.empty()) {
             auto tokens = Engine::Tokenizer::tokenize(file_contents);
-
-            for(const auto &token: tokens) {
-                cout<<token.token<<" ";
+            
+            int document_id = db.insert_document(absolute_path);
+            if(document_id != -1) {
+                db.insert_tokens(document_id, tokens);
             }
-            cout<<endl;
         }
+
+        const char* sql = 
+            "SELECT i.token, d.file_path, i.line_number "
+            "FROM inverted_index i "
+            "JOIN documents d ON i.document_id = d.id "
+            "ORDER BY i.token ASC, i.line_number ASC;";
+
+        sqlite3_stmt* stmt;
 
         total_content_size += file_contents.size();
         total_files_opened++;
     }
+
+    db.print_inverted_index();
 
     auto end_time = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
