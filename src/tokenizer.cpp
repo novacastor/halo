@@ -31,7 +31,7 @@ namespace Engine {
                 string_view raw_token = file_content.substr(token_start, cursor - token_start);
                 string clean_token = normalize(raw_token);
 
-                if(!clean_token.empty()) tokens.push_back({clean_token, current_line});
+                if(!clean_token.empty() && clean_token.size() > 2) tokens.push_back({clean_token, current_line});
             }
         }
         

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(LocalSearchEngine LANGUAGES CXX)
 
 # Set modern C++ standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Locate dependencies via vcpkg
@@ -22,6 +22,8 @@ add_executable(
     src/crawler.cpp    
     src/tokenizer.cpp
     src/database.cpp
+    src/threadpool.cpp
+    src/concurrentQueue.cpp
 )
 
 # Link everything
