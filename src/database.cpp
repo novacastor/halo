@@ -1,4 +1,5 @@
 #include "database.hpp"
+#include "crawler.hpp"
 #include <iostream>
 #include <algorithm>
 #include <filesystem>
@@ -23,6 +24,8 @@ namespace Engine{
     }
 
     Database::~Database() {
+        lock_guard<mutex> lock(db_mutex);
+
         if (select_token_stmt) sqlite3_finalize(select_token_stmt);
         if (insert_token_stmt) sqlite3_finalize(insert_token_stmt);
         if (insert_token_row_stmt) sqlite3_finalize(insert_token_row_stmt);
@@ -31,12 +34,18 @@ namespace Engine{
         if (insert_doc_stmt) sqlite3_finalize(insert_doc_stmt);
         if (delete_doc_stmt) sqlite3_finalize(delete_doc_stmt);
 
+        if(upsert_fs_stmt) sqlite3_finalize(upsert_fs_stmt);
+        if(delete_fs_stmt) sqlite3_finalize(delete_fs_stmt);
+        if(delete_fs_dir_stmt) sqlite3_finalize(delete_fs_dir_stmt);
+
         if (update_mtime_stmt) sqlite3_finalize(update_mtime_stmt);
 
         if(db_handle) sqlite3_close(db_handle);
     }
 
     bool Database::init() {
+        lock_guard<mutex> lock(db_mutex);
+
         if(!db_handle) return false;
 
         const char* schema_sql = 
@@ -57,6 +66,12 @@ namespace Engine{
             "    FOREIGN KEY(document_id) REFERENCES documents(id),"
             "    FOREIGN KEY(token_id) REFERENCES tokens(id)"
             ");"
+            "CREATE TABLE IF NOT EXISTS filesystem_index ("
+            "   id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "   file_path TEXT UNIQUE NOT NULL, "
+            "   file_name TEXT NOT NULL, "
+            "   file_ext TEXT NOT NULL"
+            ");"
             "CREATE INDEX IF NOT EXISTS idx_document_id ON inverted_index(document_id);"
             "CREATE INDEX IF NOT EXISTS idx_tokens ON inverted_index(token_id);";
 
@@ -72,10 +87,42 @@ namespace Engine{
     }
 
     sqlite3 *Database::get_db_handle() {
+        lock_guard<mutex> lock(db_mutex);
+
         return db_handle;
     }
 
+    void Database::load_existing_mtimes(unordered_map<string, long long> &existing_mtimes) {
+        lock_guard<mutex> lock(db_mutex);
+
+        sqlite3_stmt *stmt;
+        sqlite3_prepare_v2(db_handle, "SELECT file_path, mtime FROM documents;", -1, &stmt, nullptr);
+
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            string path = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            long long mtime = sqlite3_column_int64(stmt, 1);
+        
+            existing_mtimes[path] = mtime;
+        }
+
+        sqlite3_finalize(stmt);
+    }
+    
+    void Database::optimize_search_indexes() {
+        lock_guard<mutex> lock(db_mutex); 
+
+        sqlite3_exec(db_handle, "PRAGMA synchronous = OFF;", nullptr, nullptr, nullptr);
+        sqlite3_exec(db_handle, "BEGIN;", nullptr, nullptr, nullptr);
+        
+        sqlite3_exec(db_handle, "CREATE INDEX IF NOT EXISTS idx_document_id ON inverted_index(document_id);", nullptr, nullptr, nullptr);
+        sqlite3_exec(db_handle, "CREATE INDEX IF NOT EXISTS idx_tokens ON inverted_index(token_id);", nullptr, nullptr, nullptr);
+        
+        sqlite3_exec(db_handle, "COMMIT;", nullptr, nullptr, nullptr);
+        sqlite3_exec(db_handle, "PRAGMA synchronous = NORMAL;", nullptr, nullptr, nullptr);
+    }
     int Database::insert_document(const string &file_path, long long mtime) {
+        lock_guard<mutex> lock(db_mutex);
+
         if(!db_handle) {
             cerr << "db_handle missing " << endl;
             return -1;
@@ -113,6 +160,8 @@ namespace Engine{
     }
 
     bool Database::insert_tokens(int document_id, const vector<TokenMatch> &tokens) {
+        lock_guard<mutex> lock(db_mutex);
+
         if(!db_handle || tokens.empty()) {
             if(!db_handle) cerr << "db_handle missing" << endl;
             return false;
@@ -131,6 +180,77 @@ namespace Engine{
             sqlite3_step(insert_token_stmt);
         }
         sqlite3_reset(insert_token_stmt);
+        return true;
+    }
+
+    bool Database::insert_file(const string &name, const string &ext, const string &path) {
+        lock_guard<mutex> lock(db_mutex);
+
+        if(!upsert_fs_stmt) return false;
+
+        sqlite3_reset(upsert_fs_stmt);
+
+        sqlite3_bind_text(upsert_fs_stmt, 1, name.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(upsert_fs_stmt, 2, ext.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(upsert_fs_stmt, 3, path.c_str(), -1, SQLITE_STATIC);
+
+        if(sqlite3_step(upsert_fs_stmt) != SQLITE_DONE) {
+            cerr << "Inotify DB error (insert file): " << sqlite3_errmsg(db_handle) << endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    bool Database::delete_file(const string &path) {
+        lock_guard<mutex> lock(db_mutex);
+
+        if(!delete_fs_stmt) return false;
+
+        sqlite3_reset(delete_fs_stmt);    
+        sqlite3_bind_text(delete_fs_stmt, 1, path.c_str(), -1, SQLITE_STATIC);
+
+        if(sqlite3_step(delete_fs_stmt) != SQLITE_DONE) {
+            cerr << "Inotify DB error (delete file): " << sqlite3_errmsg(db_handle) << endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    void Database::commit_filesystem_index(const vector<Engine::FSEntry> &files) {
+        if(files.empty()) return;
+
+        sqlite3_exec(db_handle, "BEGIN;", nullptr, nullptr, nullptr);
+
+        for(const auto &file: files) {
+            insert_file(file.name, file.ext, file.path);
+        }
+
+        sqlite3_exec(db_handle, "COMMIT;", nullptr, nullptr, nullptr);
+    }
+
+    bool Database::delete_directory(const string &dir_path) {
+        lock_guard<mutex> lock(db_mutex);
+
+        if(!delete_fs_dir_stmt) return false;
+
+        sqlite3_reset(delete_fs_dir_stmt);    
+
+        string wildcard_path = dir_path;
+        if(wildcard_path.back() != '/') {
+            wildcard_path += '/';
+        }
+        wildcard_path += '%';
+
+        sqlite3_bind_text(delete_fs_dir_stmt, 1, dir_path.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(delete_fs_dir_stmt, 2, wildcard_path.c_str(), -1, SQLITE_STATIC);
+
+        if(sqlite3_step(delete_fs_dir_stmt) != SQLITE_DONE) {
+            cerr << "Inotify DB error (delete directory): " << sqlite3_errmsg(db_handle) << endl;
+            return false;
+        }
+
         return true;
     }
 
@@ -177,7 +297,24 @@ namespace Engine{
             cerr << "Failed to prepare update mtime statement: " << sqlite3_errmsg(db_handle) << endl;
             return false;
         }
-                
+
+        const char* upsert_fs_sql = "INSERT OR REPLACE INTO filesystem_index (file_name, file_ext, file_path) VALUES (?, ?, ?);";
+        if(sqlite3_prepare_v2(db_handle, upsert_fs_sql, -1, &upsert_fs_stmt, nullptr) != SQLITE_OK) {
+            cerr << "Failed to prepare upsert filesystem statement: " << sqlite3_errmsg(db_handle) << endl;
+            return false;
+        } 
+
+        const char* delete_fs_sql = "DELETE FROM filesystem_index WHERE file_path = ?;";
+        if(sqlite3_prepare_v2(db_handle, delete_fs_sql, -1, &delete_fs_stmt, nullptr) != SQLITE_OK) {
+            cerr << "Failed to prepare delete filesystem statement: " << sqlite3_errmsg(db_handle) << endl;
+            return false;
+        }
+
+        const char* delete_fs_dir_sql = "DELETE FROM filesystem_index WHERE file_path = ? OR file_path LIKE ?;";
+        if(sqlite3_prepare_v2(db_handle, delete_fs_dir_sql, -1, &delete_fs_dir_stmt, nullptr) != SQLITE_OK) {
+            cerr << "Failed to prepare delete filesystem directory statement: " << sqlite3_errmsg(db_handle) << endl;
+            return false;
+        }
         return true;
     }
     
@@ -208,6 +345,8 @@ namespace Engine{
     }
 
     void Database::print_inverted_index() {
+        lock_guard<mutex> lock(db_mutex);
+
         if(!db_handle) return;
 
         const char* sql = 
@@ -239,7 +378,9 @@ namespace Engine{
         sqlite3_finalize(stmt);
     }
 
-    void Database::print_db_size(string db_path) const {
+    void Database::print_db_size(string db_path) {
+        lock_guard<mutex> lock(db_mutex);
+
         try {
             if (filesystem::exists(db_path)) {
                 uintmax_t file_size_bytes = filesystem::file_size(db_path);

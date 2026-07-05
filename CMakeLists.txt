@@ -24,6 +24,8 @@ add_executable(
     src/database.cpp
     src/threadpool.cpp
     src/concurrentQueue.cpp
+    src/queryEngine.cpp
+    src/pipeline.cpp
 )
 
 # Link everything
