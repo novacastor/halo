@@ -85,6 +85,14 @@ namespace Engine {
         sqlite3_exec(db_handle, "COMMIT;", nullptr, nullptr, nullptr);
     }
 
+    void Database::begin_bulk_index() {
+        drop_idx_tokens_table();
+    }
+
+    void Database::end_bulk_index() {
+        optimize_search_indexes();
+    }
+
     void Database::drop_idx_tokens_table() {
         lock_guard<mutex> lock(db_mutex);
         sqlite3_exec(db_handle, "DROP INDEX IF EXISTS idx_tokens;", nullptr, nullptr, nullptr);

@@ -19,13 +19,12 @@ namespace Engine {
     private:
         CrawlBatch crawl();
         void sync_filesystem(const CrawlBatch &batch);
-        bool build_index(const CrawlBatch &batch);
-        void optimize_indexes(bool build_required);
+        void build_index(const CrawlBatch &batch);
         void start_console();
         void print_statistics(Clock::time_point start_time);
 
         std::string db_name = "test.db";
-        std::string file_path = "/home/salik/programming";
+        std::string file_path = "/home/salik/";
 
         Crawler crawler;
         Database db;    

@@ -26,39 +26,41 @@ namespace Engine {
         bool delete_file(const std::string &path);
         bool delete_directory(const std::string &dir_path);
         void load_existing_mtimes();
-        void optimize_search_indexes();
         void commit_filesystem_index(const std::vector<FSEntry> &files);
         void begin_transaction();
         void commit_transaction();
-        void drop_idx_tokens_table();
         bool file_is_up_to_date(const std::string& path, long long mtime) const;
-
-    private:
+        void begin_bulk_index();
+        void end_bulk_index();
+        
+        private:
         sqlite3 *db_handle = nullptr;
-
+        
         sqlite3_stmt *select_token_stmt = nullptr;
         sqlite3_stmt *insert_token_stmt = nullptr;
         sqlite3_stmt *insert_token_row_stmt = nullptr;
-
+        
         sqlite3_stmt *select_doc_stmt = nullptr;
         sqlite3_stmt *insert_doc_stmt = nullptr;
         sqlite3_stmt *delete_doc_stmt = nullptr;
         sqlite3_stmt* update_mtime_stmt = nullptr;
-
+        
         sqlite3_stmt *upsert_fs_stmt = nullptr;
         sqlite3_stmt *delete_fs_stmt = nullptr;
         sqlite3_stmt *delete_fs_dir_stmt = nullptr;
-
+        
         std::unordered_map<std::string, long long> existing_mtimes;
         std::unordered_map<std::string, int> token_cache;
-
+        
         int get_or_create_token_id(const std::string &token);
         void configure_database();
         bool create_schema();
         bool prepare_document_statements();
         bool prepare_token_statements();
         bool prepare_filesystem_statements();
-
+        void drop_idx_tokens_table();
+        void optimize_search_indexes();
+        
         std::mutex db_mutex;
     };
 }

@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <chrono>
 
 namespace Engine {
     class IndexerPipeline {
@@ -15,7 +16,7 @@ namespace Engine {
         IndexerPipeline() = default;
         ~IndexerPipeline() = default;
 
-        bool execute(const std::vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db);
+        void execute(const std::vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db);
 
         double get_read_time_s() const { 
             return file_read_time_us.load() / 1'000'000.0; 
@@ -31,6 +32,7 @@ namespace Engine {
         void batch_jobs(const std::vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db);
         void process_batch(const std::vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db);
         void database_writer_thread(Engine::Database &db);
+        void print_profile(std::chrono::steady_clock::time_point start_time);
 
         WorkQueue<IndexJob> db_queue;
 

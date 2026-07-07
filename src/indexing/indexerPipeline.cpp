@@ -7,20 +7,40 @@
 using namespace std;
 using Clock = chrono::steady_clock;
 
-bool Engine::IndexerPipeline::execute(const vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
-
-    long long initial_processed = total_files_processed.load();
-    this->batch_jobs(code_candidates, db);
-
+void Engine::IndexerPipeline::print_profile(Clock::time_point t_start) {
     cout << "\n\n===== PROFILE =====\n";
     cout << "File Read : " << file_read_time_us.load() / 1'000'000.0 << " s\n";
     cout << "Tokenize  : " << tokenize_time_us.load() / 1'000'000.0 << " s\n";
     cout << "Database  : " << db_time_us.load() / 1'000'000.0 << " s\n";
-
+    
     cout << "Total Files processed: " << total_files_processed << endl;
     cout << "Total Data processed: " << total_content_size << " bytes " << endl;
+    auto t_end = Clock::now();
+    std::cout << "Index build: " << std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count() / 1000.0 << " s\n";
+}
 
-    return total_files_processed.load() > initial_processed;
+void Engine::IndexerPipeline::execute(const vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
+
+    bool rebuild_required = false;
+    for(const auto &candidate: code_candidates) {
+        if(!db.file_is_up_to_date(candidate.path, candidate.mtime))
+        {
+            rebuild_required = true;
+            break;
+        }
+    }
+
+    if(!rebuild_required) {
+        cout << "Everything is upto date" << endl;
+        return;
+    }
+
+    db.begin_bulk_index();
+    this->batch_jobs(code_candidates, db);
+    auto t_start = Clock::now();
+    db.end_bulk_index();
+
+    print_profile(t_start);
 }
 
 string Engine::IndexerPipeline::open_file(const string &path) {
@@ -52,7 +72,6 @@ void Engine::IndexerPipeline::batch_jobs(const vector<Engine::CodeCandidate> &co
     size_t batch_size = (code_candidates.size() + num_threads - 1)  / num_threads;
     if(batch_size == 0) batch_size = 1;
     
-    db.drop_idx_tokens_table();
     
     for(size_t i = 0; i < code_candidates.size(); i += batch_size) {
         auto start_it = code_candidates.begin() + i;
@@ -92,8 +111,6 @@ void Engine::IndexerPipeline::process_batch(const vector<Engine::CodeCandidate> 
 }
 
 void Engine::IndexerPipeline::database_writer_thread(Engine::Database &db) {
-    sqlite3 *db_handle = db.get_db_handle();
-    
     bool running = true;
     while(running) {
         IndexJob job = db_queue.pop();

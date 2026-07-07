@@ -20,8 +20,7 @@ namespace Engine {
         
         CrawlBatch batch = crawl();
         sync_filesystem(batch);
-        bool rebuild_required = build_index(batch);
-        optimize_indexes(rebuild_required);
+        build_index(batch);
         start_console();
         print_statistics(start_time);
     }
@@ -34,20 +33,8 @@ namespace Engine {
         db.commit_filesystem_index(batch.all_files);
     }
     
-    bool App::build_index(const CrawlBatch &batch) {       
-        return pipeline.execute(batch.code_files, db); 
-    }
-    
-    void App::optimize_indexes(bool rebuild_required) {
-        if(rebuild_required) {
-            auto t_start = Clock::now();
-            db.optimize_search_indexes();
-            auto t_end = Clock::now();
-            
-            std::cout << "Index build: " << std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count() / 1000.0 << " s\n";
-        } else {
-            std::cout << "\nSearch indexes up to date. Skipping optimization pass.\n";
-        }
+    void App::build_index(const CrawlBatch &batch) {       
+        pipeline.execute(batch.code_files, db); 
     }
     
     void App::start_console() {
