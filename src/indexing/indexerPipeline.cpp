@@ -1,18 +1,15 @@
-#include "pipeline.hpp"
-#include "tokenizer.hpp"
-#include "threadpool.hpp"
+#include "indexing/indexerPipeline.hpp"
+#include "indexing/tokenizer.hpp"
+#include "indexing/threadpool.hpp"
 #include <iostream>
 #include <filesystem>
 
 using namespace std;
 using Clock = chrono::steady_clock;
 
-bool Engine::IndexerPipeline::execute(vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db,
-    const unordered_map<string, long long> &mtimes) {
+bool Engine::IndexerPipeline::execute(const vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
 
     long long initial_processed = total_files_processed.load();
-
-    this->local_mtimes = mtimes;
     this->batch_jobs(code_candidates, db);
 
     cout << "\n\n===== PROFILE =====\n";
@@ -47,7 +44,7 @@ string Engine::IndexerPipeline::open_file(const string &path) {
     return contents;
 }
 
-void Engine::IndexerPipeline::batch_jobs(vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
+void Engine::IndexerPipeline::batch_jobs(const vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
     size_t num_threads = thread::hardware_concurrency();
     ThreadPool pool(num_threads);
     thread db_thread(&Engine::IndexerPipeline::database_writer_thread, this, std::ref(db));
@@ -55,8 +52,7 @@ void Engine::IndexerPipeline::batch_jobs(vector<Engine::CodeCandidate> &code_can
     size_t batch_size = (code_candidates.size() + num_threads - 1)  / num_threads;
     if(batch_size == 0) batch_size = 1;
     
-    sqlite3_exec(db.get_db_handle(), "DROP INDEX IF EXISTS idx_tokens;", nullptr, nullptr, nullptr);
-    // sqlite3_exec(db.get_db_handle(), "DROP INDEX IF EXISTS idx_document_id;", nullptr, nullptr, nullptr);
+    db.drop_idx_tokens_table();
     
     for(size_t i = 0; i < code_candidates.size(); i += batch_size) {
         auto start_it = code_candidates.begin() + i;
@@ -76,16 +72,11 @@ void Engine::IndexerPipeline::batch_jobs(vector<Engine::CodeCandidate> &code_can
 void Engine::IndexerPipeline::process_batch(const vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
     for(const auto &candidate: code_candidates) {
 
-        auto it = local_mtimes.find(candidate.path);
-        if(it != local_mtimes.end() && it->second == candidate.mtime) {
-            continue;
-        } 
+        if(db.file_is_up_to_date(candidate.path, candidate.mtime)) continue;
         
         auto t1 = Clock::now();
         string file_contents = open_file(candidate.path);
         auto t2 = Clock::now();
-        
-        // cout << "\r[Indexer] files processed: " << total_files_processed << " " << flush;
         
         file_read_time_us += chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
         if(file_contents.empty()) continue;
@@ -109,7 +100,7 @@ void Engine::IndexerPipeline::database_writer_thread(Engine::Database &db) {
         if(job.is_poison_pill) break;
         
         auto t_start = Clock::now();
-        sqlite3_exec(db_handle, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
+        db.begin_transaction();
         
         int batch_count = 0;
         while(true) {
@@ -130,7 +121,7 @@ void Engine::IndexerPipeline::database_writer_thread(Engine::Database &db) {
             
         }
         
-        sqlite3_exec(db_handle, "COMMIT;", nullptr, nullptr, nullptr);
+        db.commit_transaction();
         auto t_end = Clock::now();
         db_time_us += chrono::duration_cast<chrono::microseconds>(t_end - t_start).count();
     }

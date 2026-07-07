@@ -18,14 +18,20 @@ include_directories(
 # Define executable
 add_executable(
     search_engine 
-    src/main.cpp
-    src/crawler.cpp    
-    src/tokenizer.cpp
-    src/database.cpp
-    src/threadpool.cpp
-    src/concurrentQueue.cpp
-    src/queryEngine.cpp
-    src/pipeline.cpp
+    
+    src/engine/main.cpp
+    src/engine/engineApp.cpp
+
+    src/crawler/crawler.cpp    
+    
+    src/search/queryEngine.cpp
+    
+    src/indexing/indexerPipeline.cpp
+    
+    src/database/databaseCore.cpp
+    src/database/databaseDocuments.cpp
+    src/database/databaseFilesystem.cpp
+    src/database/databaseDebug.cpp
 )
 
 # Link everything
