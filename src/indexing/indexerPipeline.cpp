@@ -21,24 +21,18 @@ void Engine::IndexerPipeline::print_profile(Clock::time_point t_start) {
 
 void Engine::IndexerPipeline::execute(const vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
 
-    bool rebuild_required = false;
+    size_t file_change_count = 0;
     for(const auto &candidate: code_candidates) {
-        if(!db.file_is_up_to_date(candidate.path, candidate.mtime))
-        {
-            rebuild_required = true;
-            break;
-        }
+        if(!db.file_is_up_to_date(candidate.path, candidate.mtime)) file_change_count++;
     }
+    
+    bool rebuild_required = false;
+    if(file_change_count >= 1000) rebuild_required = true;
 
-    if(!rebuild_required) {
-        cout << "Everything is upto date" << endl;
-        return;
-    }
-
-    db.begin_bulk_index();
+    if(rebuild_required) db.begin_bulk_index();
     this->batch_jobs(code_candidates, db);
     auto t_start = Clock::now();
-    db.end_bulk_index();
+    if(rebuild_required) db.end_bulk_index();
 
     print_profile(t_start);
 }
@@ -52,9 +46,11 @@ string Engine::IndexerPipeline::open_file(const string &path) {
         return "";
     }
     
-    stringstream buffer;
-    buffer<<file.rdbuf();
-    string contents = buffer.str();
+    file.seekg(0, std::ios::end);
+    size_t size = file.tellg();
+    std::string contents(size, ' ');
+    file.seekg(0, std::ios::beg);
+    file.read(&contents[0], size);
     
     file.close();
     
@@ -66,6 +62,7 @@ string Engine::IndexerPipeline::open_file(const string &path) {
 
 void Engine::IndexerPipeline::batch_jobs(const vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
     size_t num_threads = thread::hardware_concurrency();
+    if(num_threads == 0) num_threads = 4;
     ThreadPool pool(num_threads);
     thread db_thread(&Engine::IndexerPipeline::database_writer_thread, this, std::ref(db));
     

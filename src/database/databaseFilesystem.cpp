@@ -16,7 +16,7 @@ namespace Engine {
         sqlite3_bind_text(upsert_fs_stmt, 3, path.c_str(), -1, SQLITE_STATIC);
 
         if(sqlite3_step(upsert_fs_stmt) != SQLITE_DONE) {
-            cerr << "Inotify DB error (insert file): " << sqlite3_errmsg(db_handle) << endl;
+            cerr << " DB error (insert file): " << sqlite3_errmsg(db_handle) << endl;
             return false;
         }
 

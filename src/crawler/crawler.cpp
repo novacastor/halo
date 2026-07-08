@@ -21,7 +21,9 @@ Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const string &targe
         const auto &entry = *it;
         
         if(entry.is_directory()) {
-            string folder_name = entry.path().filename().string();
+            const auto& native_name = entry.path().filename().native();
+            std::string_view folder_name(native_name.c_str(), native_name.length());
+            
             if(FOLDER_BLACKLIST.find(folder_name) != FOLDER_BLACKLIST.end() || GLOBAL_FOLDER_BLACKLIST.find(folder_name) != GLOBAL_FOLDER_BLACKLIST.end()) {
                 it.disable_recursion_pending();
                 continue;

@@ -90,6 +90,10 @@ namespace Engine {
     }
 
     void Database::end_bulk_index() {
+        {
+            lock_guard<mutex> lock(db_mutex);
+            token_cache.clear();
+        }
         optimize_search_indexes();
     }
 

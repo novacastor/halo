@@ -1,2 +1,4 @@
 build/
 *.db
+vcpkg/
+vcpkg_installed/

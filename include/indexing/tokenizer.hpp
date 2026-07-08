@@ -33,25 +33,18 @@ namespace Engine {
                 }
 
                 if(cursor > token_start) {
-                    std::string_view raw_token = file_content.substr(token_start, cursor - token_start);
-                    std::string clean_token = normalize(raw_token);
+                    std::string clean_token;
+                    clean_token.reserve(cursor - token_start);
 
-                    if(!clean_token.empty() && clean_token.size() > 2) tokens.push_back({clean_token, current_line});
+                    for (size_t i = token_start; i < cursor; ++i) {
+                        clean_token.push_back(std::tolower(static_cast<unsigned char>(file_content[i])));
+                    }
+
+                    if(clean_token.size() > 2) tokens.push_back({clean_token, current_line});
                 }
             }
             
             return tokens;
-        }
-
-    private:
-        static std::string normalize(std::string_view raw_token) {
-            std::string clean_str(raw_token);
-        
-            transform(clean_str.begin(), clean_str.end(), clean_str.begin(), [](unsigned char c) {
-                return std::tolower(c);
-            });
-            
-            return clean_str;
         }
     };
 }

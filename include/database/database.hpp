@@ -20,20 +20,28 @@ namespace Engine {
         bool init();
         bool prepare_statements();
         sqlite3 *get_db_handle();
+
         int insert_document(const std::string &file_path, long long mtime);
         bool insert_tokens(int document_id, const std::vector<TokenMatch> &tokens);
+        
         bool insert_file(const std::string &name, const std::string &ext, const std::string &path);
         bool delete_file(const std::string &path);
         bool delete_directory(const std::string &dir_path);
+        
         void load_existing_mtimes();
         void commit_filesystem_index(const std::vector<FSEntry> &files);
+        bool file_is_up_to_date(const std::string& path, long long mtime) const;
+        
         void begin_transaction();
         void commit_transaction();
-        bool file_is_up_to_date(const std::string& path, long long mtime) const;
+
         void begin_bulk_index();
         void end_bulk_index();
+
+        std::vector<MatchResult> execute_phrase_search(const std::vector<TokenMatch>& query_tokens, int limit = 50);
+        std::vector<FileMatch> execute_filename_search(const std::string &pattern);
         
-        private:
+    private:
         sqlite3 *db_handle = nullptr;
         
         sqlite3_stmt *select_token_stmt = nullptr;

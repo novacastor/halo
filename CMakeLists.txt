@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Locate dependencies via vcpkg
-find_package(unofficial-sqlite3 CONFIG REQUIRED)
+find_package(OpenGL REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(SQLite3 REQUIRED)
@@ -18,7 +18,7 @@ include_directories(
 # Define executable
 add_executable(
     search_engine 
-    
+
     src/engine/main.cpp
     src/engine/engineApp.cpp
 
@@ -32,14 +32,23 @@ add_executable(
     src/database/databaseDocuments.cpp
     src/database/databaseFilesystem.cpp
     src/database/databaseDebug.cpp
+    src/database/databaseSearch.cpp
+
+    src/ui/ui.cpp
+)
+
+target_include_directories(
+    search_engine 
+PRIVATE 
+    ${OPENGL_INCLUDE_DIR}
 )
 
 # Link everything
 target_link_libraries(
     search_engine
 PRIVATE
-   unofficial::sqlite3::sqlite3
     imgui::imgui
     glfw
     SQLite3::SQLite3
+    OpenGL::GL
 )

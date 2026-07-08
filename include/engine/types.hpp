@@ -38,6 +38,30 @@ namespace Engine {
         int score;
     };
 
+    struct MatchCandidate {
+        int document_id;
+        int line_number;
+        int score;
+    };
+
+    struct MatchKey {
+        int document_id;
+        int line_number;
+        int score;
+
+        bool operator==(const MatchKey &other) const {
+            return document_id == other.document_id &&
+                line_number == other.line_number;
+        }
+    };
+
+    struct MatchKeyHash {
+        size_t operator()(const MatchKey &k) const {
+            return (static_cast<size_t>(k.document_id) << 32)
+                ^ static_cast<size_t>(k.line_number);
+        }
+    };
+
     struct FileMatch {
         std::string file_path;
         std::string file_name;

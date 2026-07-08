@@ -1,24 +1,24 @@
 #include "engine/engineApp.hpp"
+#include "ui/ui.hpp"
 
 int main() {
     
-    // ios::sync_with_stdio(false);
-    // cin.tie(nullptr);
-    
-    
     std::cout << "========================================" << "\n";
     std::cout << "SQLite Version: " << sqlite3_libversion() << "\n";
-
-    // IMGUI_CHECKVERSION();
-    // ImGui::CreateContext();
-    
-    // ImGui::DestroyContext();
     
     Engine::App app;
-    if(!app.init()) {
+    if (!app.init()) {
+        std::cerr << "Failed to initialize Halo Core Subsystems.\n";
         return EXIT_FAILURE;
     }
 
-    app.run();
-    return 0;
+    Engine::UI ui(app);
+    if (!ui.init(960, 600, "Halo Engine")) {
+        std::cerr << "CRITICAL: UI subsystem context instantiation failed.\n";
+        return EXIT_FAILURE;
+    }
+
+    ui.run();
+
+    return EXIT_SUCCESS;
 }

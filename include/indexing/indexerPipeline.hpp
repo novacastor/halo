@@ -18,15 +18,10 @@ namespace Engine {
 
         void execute(const std::vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db);
 
-        double get_read_time_s() const { 
-            return file_read_time_us.load() / 1'000'000.0; 
-        }
-        double get_tokenize_time_s() const { 
-            return tokenize_time_us.load() / 1'000'000.0; 
-        }
-        double get_db_time_s() const { 
-            return db_time_us.load() / 1'000'000.0; 
-        }
+        long long get_read_time_s() const { return file_read_time_us; }
+        long long get_tokenize_time_s() const { return tokenize_time_us; }
+        long long get_db_time_s() const { return db_time_us; }
+
     private:
         std::string open_file(const std::string &path);
         void batch_jobs(const std::vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db);
