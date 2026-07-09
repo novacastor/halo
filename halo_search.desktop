@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Halo
+Comment=A blazing fast, minimalist local search engine
+Exec=search_engine
+Icon=halo-icon
+Terminal=false
+Categories=Utility;

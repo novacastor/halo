@@ -4,6 +4,7 @@
 #include <vector>
 #include <cctype>
 #include <algorithm>
+#include <unordered_set>
 #include "engine/types.hpp"
 
 namespace Engine {
@@ -40,11 +41,45 @@ namespace Engine {
                         clean_token.push_back(std::tolower(static_cast<unsigned char>(file_content[i])));
                     }
 
-                    if(clean_token.size() > 2) tokens.push_back({clean_token, current_line});
+                    if(clean_token.size() > 2 && STOP_WORDS.find(clean_token) == STOP_WORDS.end()) {
+                        tokens.push_back({clean_token, current_line});
+                    }
                 }
             }
             
             return tokens;
         }
+    private:
+        inline static const std::unordered_set<std::string> STOP_WORDS = {
+            // 1. Primitives & Variable Declarations
+            "int", "void", "char", "bool", "float", "double", "unsigned", "long", "short", 
+            "size_t", "auto", "string", "let", "var",
+            
+            // 2. OOP, Classes & Types
+            "class", "struct", "interface", "extends", "implements", "public", "private", 
+            "protected", "virtual", "override", "abstract", "final", "this", "friend", "type",
+            
+            // 3. Control Flow & Logic
+            "return", "true", "false", "none", "null", "nullptr", "undefined", 
+            "while", "break", "continue", "switch", "case", "elif", "pass", "yield", "with",
+            
+            // 4. Functions & Scoping
+            "def", "function", "lambda", "global", "nonlocal",
+            
+            // 5. Async & Exceptions
+            "async", "await", "throw", "catch", "try", "except", "finally",
+            
+            // 6. Memory, Operators & Modifiers
+            "new", "delete", "sizeof", "const", "static", "inline", "explicit", "mutable", 
+            "constexpr", "volatile", "typeof", "instanceof", "synchronized", "transient",
+            
+            // 7. Architecture, Modules & Preprocessor
+            "import", "export", "from", "package", "namespace", "using", "template", "typename", 
+            "operator", "include", "pragma", "once", "define", "ifndef", "endif",
+            
+            // 8. High-Frequency Standard Library / Built-ins
+            "std", "vector", "map", "cout", "endl", "print", "println", "console", "log", 
+            "system", "out", "math"
+        };
     };
 }

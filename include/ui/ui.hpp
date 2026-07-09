@@ -4,6 +4,9 @@
 #include "engine/types.hpp"
 #include <string>
 #include <vector>
+#include <future>
+#include <atomic>
+#include <chrono>
 
 struct GLFWwindow;
 
@@ -47,5 +50,9 @@ namespace Engine {
 
         std::vector<Engine::MatchResult> content_results;
         std::vector<Engine::FileMatch> filename_results;
+
+        std::future<std::vector<Engine::MatchResult>> future_content_results;
+        std::future<std::vector<Engine::FileMatch>> future_filename_results;
+        std::atomic<bool> search_in_progress{false};
     };
 }

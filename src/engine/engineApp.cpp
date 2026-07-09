@@ -28,23 +28,22 @@ namespace Engine {
         if(index_worker.joinable()) {
             index_worker.join();
         }
-
+        
         index_worker = std::thread([this]() {
+            auto t0 = Clock::now();
             CrawlBatch batch = crawl();
+            auto t1 = Clock::now();
             sync_filesystem(batch);
+            auto t2 = Clock::now();
             build_index(batch);
+            auto t3 = Clock::now();
 
             indexing_active.store(false);        
+           
+            std::cout << "Crawl:            " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << " ms\n";
+            std::cout << "Filesystem sync:  " << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() << " ms\n";
+            std::cout << "Index build:      " << std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2).count() << " ms\n";
         });
-
-        // auto t0 = Clock::now();
-        // auto t1 = Clock::now();
-        // auto t2 = Clock::now();
-        // auto t3 = Clock::now();
-        
-        // std::cout << "Crawl:            " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << " ms\n";
-        // std::cout << "Filesystem sync:  " << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() << " ms\n";
-        // std::cout << "Index build:      " << std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2).count() << " ms\n";
     }
     void App::run() {
         auto start_time = Clock::now();

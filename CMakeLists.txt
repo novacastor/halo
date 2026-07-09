@@ -52,3 +52,13 @@ PRIVATE
     SQLite3::SQLite3
     OpenGL::GL
 )
+
+# 1. Install the main binary
+install(TARGETS search_engine DESTINATION bin)
+
+install(FILES halo_search.desktop DESTINATION share/applications)
+
+# 3. Install an icon (Optional, but recommended)
+# If you don't have an icon yet, create an empty file called 'icon.png' in an 'assets' folder,
+# or simply delete these next three lines for now so it doesn't crash.
+install(FILES assets/icon.png DESTINATION share/icons/hicolor/256x256/apps RENAME halo-icon.png)

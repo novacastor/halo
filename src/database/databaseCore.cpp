@@ -155,7 +155,8 @@ namespace Engine {
             "   file_ext TEXT NOT NULL"
             ");"
             "CREATE INDEX IF NOT EXISTS idx_document_id ON inverted_index(document_id);"
-            "CREATE INDEX IF NOT EXISTS idx_tokens ON inverted_index(token_id);";
+            "CREATE INDEX IF NOT EXISTS idx_token_text ON tokens(text);"
+            "CREATE INDEX IF NOT EXISTS idx_inverted_lookup ON inverted_index(token_id, document_id, line_number);";
 
         char* error_msg = nullptr;
 

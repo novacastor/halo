@@ -1,0 +1,63 @@
+name: Build AppImage
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies for vcpkg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config autoconf automake libtool build-essential \
+                                  libwayland-dev wayland-protocols libxkbcommon-dev \
+                                  libgl1-mesa-dev libegl1-mesa-dev xorg-dev
+
+      # --- CACHING ---
+      - name: Restore vcpkg Cache
+        uses: actions/cache@v4
+        with:
+
+          path: |
+            ~/.cache/vcpkg
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
+      # ------------------------
+
+      - name: Configure CMake and Bootstrap vcpkg
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+
+      - name: Compile Application
+        run: cmake --build build --config Release
+
+      - name: Install to AppDir
+        run: DESTDIR=AppDir cmake --install build
+
+      - name: Download linuxdeploy
+        run: |
+          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
+
+      - name: Generate AppImage
+        run: |
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir --output appimage
+          mv Halo-x86_64.AppImage Halo-Linux-x86_64.AppImage
+
+      - name: Upload AppImage for Download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Halo-AppImage
+          path: Halo-Linux-x86_64.AppImage
+          retention-days: 30

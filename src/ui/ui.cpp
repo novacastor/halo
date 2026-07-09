@@ -102,24 +102,18 @@ namespace Engine {
         return true;
     }
 
-    void UI::load_font(float scale) {
+   void UI::load_font(float scale) {
         ImGuiIO& io = ImGui::GetIO();
-
         ImFontConfig font_cfg;
         font_cfg.FontDataOwnedByAtlas = true;
-        font_cfg.OversampleH = 3;
-        font_cfg.OversampleV = 3;
+        font_cfg.OversampleH = 4; // Maximize crispness
+        font_cfg.OversampleV = 4;
         font_cfg.PixelSnapH = true;
-        // Deliberately no RasterizerMultiply here: pushing anti-aliased glyph
-        // alpha past 1.0 to fake a bolder weight distorts the AA edge and is a
-        // common cause of text looking crunchy/jagged at small sizes. Better to
-        // just use a font whose regular weight already reads cleanly.
 
-        const float base_pt = 15.0f;             // logical point size
-        const float px_size = base_pt * scale;   // baked at the real display scale
+        // Increased from 15.0f to 18.0f for that premium, readable macOS feel
+        const float base_pt = 18.0f;             
+        const float px_size = base_pt * scale;   
 
-        // Inter/Noto read much closer to the macOS system font than DejaVu Sans.
-        // For the best result: `sudo pacman -S ttf-inter` (or `ttf-inter-git` / AUR).
         static const char* candidates[] = {
             "/usr/share/fonts/inter/Inter-Regular.ttf",
             "/usr/share/fonts/TTF/Inter-Regular.ttf",
@@ -136,13 +130,7 @@ namespace Engine {
                 if (loaded) break;
             }
         }
-
-        if (!loaded) {
-            std::cerr << "WARNING: Couldn't find Inter, Noto Sans, or DejaVu Sans on disk. "
-                          "Falling back to ImGui's built-in bitmap font — install one with, "
-                          "e.g., `sudo pacman -S ttf-inter` for a much crisper result.\n";
-            io.Fonts->AddFontDefault();
-        }
+        if (!loaded) io.Fonts->AddFontDefault();
     }
 
     void UI::rebuild_fonts() {
@@ -176,73 +164,71 @@ namespace Engine {
     void UI::apply_custom_style(float scale) {
         ImGuiStyle& style = ImGui::GetStyle();
 
-        // Minimalist layout structural tuning — all absolute values derived from
-        // the current display scale, so this can be called again on a DPI change
-        // without drifting.
-        style.WindowPadding     = ImVec2(18.0f * scale, 18.0f * scale);
-        style.FramePadding      = ImVec2(12.0f * scale, 9.0f * scale);
-        style.ItemSpacing       = ImVec2(10.0f * scale, 10.0f * scale);
-        style.ItemInnerSpacing  = ImVec2(8.0f * scale, 6.0f * scale);
-        style.ScrollbarSize     = 12.0f * scale;
-        style.WindowRounding    = 14.0f * scale;
-        style.ChildRounding     = 10.0f * scale;
-        style.FrameRounding     = 9.0f * scale;
-        style.PopupRounding     = 9.0f * scale;
+        // Massive increases to padding for that "breathing room" UI feel
+        style.WindowPadding     = ImVec2(32.0f * scale, 32.0f * scale);
+        style.FramePadding      = ImVec2(20.0f * scale, 14.0f * scale);
+        style.ItemSpacing       = ImVec2(16.0f * scale, 16.0f * scale);
+        style.ItemInnerSpacing  = ImVec2(12.0f * scale, 8.0f * scale);
+        
+        // Heavy rounding for pill-shapes and soft edges
+        style.WindowRounding    = 16.0f * scale;
+        style.ChildRounding     = 12.0f * scale;
+        style.FrameRounding     = 12.0f * scale; // Pill-shaped search bar
+        style.PopupRounding     = 12.0f * scale;
         style.ScrollbarRounding = 12.0f * scale;
-        style.GrabRounding      = 6.0f * scale;
+        style.GrabRounding      = 8.0f * scale;
+        
         style.WindowBorderSize  = 0.0f;
-        style.ChildBorderSize   = 1.0f;
-        style.FrameBorderSize   = 1.0f;
+        style.ChildBorderSize   = 0.0f; // Remove ugly borders
+        style.FrameBorderSize   = 0.0f;
 
-        // --- Creamy Tactile macOS Color Palette ---
-        ImVec4 container_white  = ImVec4(0.98f, 0.98f, 0.98f, 1.00f); // #FAF9F8 Clean Off-White
-        ImVec4 divider_gray     = ImVec4(0.88f, 0.88f, 0.86f, 1.00f); // #E0E0DC Tactile Borders
-        ImVec4 charcoal_text    = ImVec4(0.16f, 0.17f, 0.18f, 1.00f); // #292A2E High Contrast Soft Text
-        ImVec4 gray_muted_text  = ImVec4(0.50f, 0.51f, 0.53f, 1.00f); // #808287 Subdued Metrics
+        // --- Midnight Mac Color Palette ---
+        ImVec4 base_bg        = ImVec4(0.98f, 0.98f, 0.98f, 1.00f); // Soft off-white base
+        ImVec4 elevated_bg    = ImVec4(1.00f, 1.00f, 1.00f, 1.00f); // Pure white for inputs/cards
+        ImVec4 active_bg      = ImVec4(0.93f, 0.93f, 0.93f, 1.00f); // Slight grey for hovers/tracks
+        ImVec4 primary_text   = ImVec4(0.12f, 0.12f, 0.12f, 1.00f); // Crisp near-black
+        ImVec4 muted_text     = ImVec4(0.55f, 0.55f, 0.55f, 1.00f); // Medium grey
+        ImVec4 accent_color   = ImVec4(0.15f, 0.15f, 0.15f, 1.00f); // Monochrome dark charcoal accent
+        ImVec4 accent_hover   = ImVec4(0.30f, 0.30f, 0.30f, 1.00f); // Lighter charcoal
 
-        ImVec4 interactive_bg   = ImVec4(0.91f, 0.91f, 0.89f, 1.00f); // #E8E8E3 Light Neutral Component
-        ImVec4 interact_hover   = ImVec4(0.85f, 0.85f, 0.83f, 1.00f); // #D9D9D4 Medium Tint
-        ImVec4 interact_active  = ImVec4(0.77f, 0.78f, 0.75f, 1.00f); // #C4C7BF Darker Press State
+        style.Colors[ImGuiCol_WindowBg]             = base_bg;
+        style.Colors[ImGuiCol_ChildBg]              = base_bg;
+        style.Colors[ImGuiCol_PopupBg]              = elevated_bg;
+        style.Colors[ImGuiCol_Border]               = elevated_bg;
+        style.Colors[ImGuiCol_Separator]            = elevated_bg;
 
-        ImVec4 slate_accent     = ImVec4(0.36f, 0.42f, 0.49f, 1.00f); // #5C6B7D
-        ImVec4 slate_hover      = ImVec4(0.43f, 0.50f, 0.58f, 1.00f); // #6E8094
+        style.Colors[ImGuiCol_Text]                 = primary_text;
+        style.Colors[ImGuiCol_TextDisabled]         = muted_text;
 
-        style.Colors[ImGuiCol_WindowBg]             = container_white;
-        style.Colors[ImGuiCol_ChildBg]              = container_white;
-        style.Colors[ImGuiCol_PopupBg]              = container_white;
-        style.Colors[ImGuiCol_Border]               = divider_gray;
-        style.Colors[ImGuiCol_Separator]            = divider_gray;
+        style.Colors[ImGuiCol_FrameBg]              = elevated_bg;
+        style.Colors[ImGuiCol_FrameBgHovered]       = active_bg;
+        style.Colors[ImGuiCol_FrameBgActive]        = active_bg;
 
-        style.Colors[ImGuiCol_Text]                 = charcoal_text;
-        style.Colors[ImGuiCol_TextDisabled]         = gray_muted_text;
+        style.Colors[ImGuiCol_Button]               = elevated_bg;
+        style.Colors[ImGuiCol_ButtonHovered]        = active_bg;
+        style.Colors[ImGuiCol_ButtonActive]         = accent_color;
 
-        style.Colors[ImGuiCol_FrameBg]              = interactive_bg;
-        style.Colors[ImGuiCol_FrameBgHovered]       = interact_hover;
-        style.Colors[ImGuiCol_FrameBgActive]        = interact_active;
+        style.Colors[ImGuiCol_Header]               = accent_color; // For selectable items
+        style.Colors[ImGuiCol_HeaderHovered]        = active_bg;
+        style.Colors[ImGuiCol_HeaderActive]         = accent_color;
 
-        style.Colors[ImGuiCol_Button]               = interactive_bg;
-        style.Colors[ImGuiCol_ButtonHovered]        = interact_hover;
-        style.Colors[ImGuiCol_ButtonActive]         = interact_active;
-
-        style.Colors[ImGuiCol_Header]               = interactive_bg;
-        style.Colors[ImGuiCol_HeaderHovered]        = interact_hover;
-        style.Colors[ImGuiCol_HeaderActive]         = interact_active;
-
-        style.Colors[ImGuiCol_PlotHistogram]        = slate_accent;
-        style.Colors[ImGuiCol_PlotHistogramHovered] = slate_hover;
-        style.Colors[ImGuiCol_CheckMark]            = slate_accent;
-        style.Colors[ImGuiCol_SliderGrab]           = slate_accent;
-        style.Colors[ImGuiCol_SliderGrabActive]     = slate_hover;
-
+        style.Colors[ImGuiCol_PlotHistogram]        = accent_color;
+        style.Colors[ImGuiCol_PlotHistogramHovered] = accent_hover;
+        
         style.Colors[ImGuiCol_ScrollbarBg]          = ImVec4(0.0f, 0.0f, 0.0f, 0.00f);
-        style.Colors[ImGuiCol_ScrollbarGrab]        = interact_hover;
-        style.Colors[ImGuiCol_ScrollbarGrabHovered]  = interact_active;
-        style.Colors[ImGuiCol_ScrollbarGrabActive]   = slate_accent;
+        style.Colors[ImGuiCol_ScrollbarGrab]        = elevated_bg;
+        style.Colors[ImGuiCol_ScrollbarGrabHovered] = active_bg;
+        style.Colors[ImGuiCol_ScrollbarGrabActive]  = muted_text;
     }
 
     void UI::run() {
         while (!glfwWindowShouldClose(window)) {
-            glfwPollEvents();
+
+            if (search_in_progress.load()) {
+                glfwPollEvents();
+            } else {
+                glfwWaitEventsTimeout(0.016); 
+            }
 
             if (fonts_dirty) {
                 rebuild_fonts();
@@ -261,7 +247,7 @@ namespace Engine {
             glfwGetFramebufferSize(window, &display_w, &display_h);
             glViewport(0, 0, display_w, display_h);
 
-            glClearColor(0.95f, 0.95f, 0.94f, 1.0f);
+            glClearColor(0.98f, 0.98f, 0.98f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -281,7 +267,15 @@ namespace Engine {
 
         draw_header_region();
         ImGui::Spacing();
-        ImGui::Separator();
+
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        ImGui::GetWindowDrawList()->AddLine(
+            ImVec2(0, p.y), 
+            ImVec2(display_w, p.y), 
+            ImGui::ColorConvertFloat4ToU32(ImVec4(0.88f, 0.88f, 0.88f, 1.0f))
+        );
+        ImGui::Dummy(ImVec2(0, 16.0f * ui_scale));
+
         ImGui::Spacing();
         draw_search_region();
 
@@ -330,50 +324,52 @@ namespace Engine {
     }
 
     void UI::draw_mode_switch() {
-        ImVec4 selected_bg   = ImVec4(0.98f, 0.98f, 0.98f, 1.0f);
-        ImVec4 selected_text = ImVec4(0.16f, 0.17f, 0.18f, 1.0f);
-        ImVec4 idle_bg       = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-        ImVec4 idle_hover    = ImVec4(0.0f, 0.0f, 0.0f, 0.05f);
-        ImVec4 idle_active   = ImVec4(0.0f, 0.0f, 0.0f, 0.08f);
-        ImVec4 idle_text     = ImVec4(0.50f, 0.51f, 0.53f, 1.0f);
+        // Animation State Tracker
+        static float anim_t = (mode_toggle == 0) ? 0.0f : 1.0f;
+        float target = (mode_toggle == 0) ? 0.0f : 1.0f;
+        
+        // Smooth linear interpolation (lerp) for the sliding animation
+        anim_t = anim_t + (target - anim_t) * 0.20f; 
 
-        const float seg_w = 88.0f * ui_scale;
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        
+        float width = 240.0f * ui_scale;
+        float height = ImGui::GetFrameHeight();
+        float radius = height * 0.5f; // Perfect pill shape
+        
+        // Draw the background track
+        draw_list->AddRectFilled(p, ImVec2(p.x + width, p.y + height), 
+                                 ImGui::ColorConvertFloat4ToU32(ImVec4(0.93f, 0.93f, 0.93f, 1.0f)), radius);
 
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, ImGui::GetStyle().FrameRounding * 0.75f);
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.91f, 0.91f, 0.89f, 1.0f));
-        ImGui::BeginChild("ModeSwitch", ImVec2(seg_w * 2.0f + 6.0f * ui_scale, ImGui::GetFrameHeight() + 6.0f * ui_scale),
-                           ImGuiChildFlags_None, ImGuiWindowFlags_NoScrollbar);
-        ImGui::Dummy(ImVec2(0.0f, 2.0f * ui_scale));
-        ImGui::SameLine(3.0f * ui_scale, 0.0f);
+        // Draw the sliding active pill
+        float pill_width = width * 0.5f;
+        float pill_x_offset = anim_t * pill_width;
+        
+        // Slight inner shadow/border effect on the pill
+        ImVec2 pill_min(p.x + pill_x_offset + 2.0f, p.y + 2.0f);
+        ImVec2 pill_max(p.x + pill_x_offset + pill_width - 2.0f, p.y + height - 2.0f);
+        draw_list->AddRectFilled(pill_min, pill_max, ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)), radius - 2.0f);
+        
+        // Invisible buttons to handle clicking
+        ImGui::SetCursorScreenPos(p);
+        if (ImGui::InvisibleButton("##btn_content", ImVec2(pill_width, height))) mode_toggle = 0;
+        ImGui::SetCursorScreenPos(ImVec2(p.x + pill_width, p.y));
+        if (ImGui::InvisibleButton("##btn_filename", ImVec2(pill_width, height))) mode_toggle = 1;
 
-        for (int i = 0; i < 2; ++i) {
-            const char* label = (i == 0) ? "Content" : "Filenames";
-            const bool selected = (mode_toggle == i);
+        // Draw Text over everything
+       auto draw_label = [&](const char* text, float offset_x, bool active) {
+            ImVec2 text_size = ImGui::CalcTextSize(text);
+            ImVec2 text_pos = ImVec2(p.x + offset_x + (pill_width - text_size.x) * 0.5f, p.y + (height - text_size.y) * 0.5f);
+            ImU32 text_col = ImGui::ColorConvertFloat4ToU32(active ? ImVec4(0.12f, 0.12f, 0.12f, 1.0f) : ImVec4(0.60f, 0.60f, 0.60f, 1.0f));
+            draw_list->AddText(text_pos, text_col, text);
+        };
 
-            ImGui::PushID(i);
-            ImGui::PushStyleColor(ImGuiCol_Button, selected ? selected_bg : idle_bg);
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, selected ? selected_bg : idle_hover);
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, selected ? selected_bg : idle_active);
-            ImGui::PushStyleColor(ImGuiCol_Text, selected ? selected_text : idle_text);
-
-            if (ImGui::Button(label, ImVec2(seg_w, ImGui::GetFrameHeight()))) {
-                if (mode_toggle != i) {
-                    mode_toggle = i;
-                    content_results.clear();
-                    filename_results.clear();
-                    search_buffer[0] = '\0';
-                }
-            }
-
-            ImGui::PopStyleColor(4);
-            ImGui::PopID();
-
-            if (i == 0) ImGui::SameLine(0.0f, 2.0f * ui_scale);
-        }
-
-        ImGui::EndChild();
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar();
+        draw_label("Content", 0.0f, mode_toggle == 0);
+        draw_label("Filenames", pill_width, mode_toggle == 1);
+        
+        // Advance layout cursor past the custom drawn element
+        ImGui::SetCursorScreenPos(ImVec2(p.x + width + (16.0f * ui_scale), p.y));
     }
 
     void UI::draw_search_region() {
@@ -383,68 +379,132 @@ namespace Engine {
         draw_mode_switch();
         ImGui::SameLine();
 
-        ImGui::PushItemWidth(-1.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
         bool changed = ImGui::InputTextWithHint(
             "##SearchBox", "Search tokens or filenames...", search_buffer, sizeof(search_buffer));
-        ImGui::PopItemWidth();
 
         if (changed) {
             std::string query(search_buffer);
             if (query.length() >= 2) {
+                search_in_progress = true;
                 if (mode_toggle == 0) {
-                    content_results = app.get_query_engine().search_phrase(query);
+                    future_content_results = std::async(std::launch::async, [this, query]() {
+                        return app.get_query_engine().search_phrase(query);
+                    });
                 } else {
-                    filename_results = app.get_query_engine().search_filename(query);
+                    future_filename_results = std::async(std::launch::async, [this, query]() {
+                        return app.get_query_engine().search_filename(query);
+                    });
                 }
             } else {
                 content_results.clear();
                 filename_results.clear();
+                search_in_progress = false;
             }
         }
 
+        if(search_in_progress) {
+            if(mode_toggle == 0 && future_content_results.valid()) {
+                if (future_content_results.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                    content_results = future_content_results.get();
+                    search_in_progress = false;
+                }
+            }else if(mode_toggle == 1 && future_filename_results.valid()) {
+                if (future_filename_results.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                    filename_results = future_filename_results.get();
+                    search_in_progress = false;
+                }
+            }
+            ImGui::TextDisabled("Searching...");
+            ImGui::Separator();
+        }
+        ImGui::Spacing();
         ImGui::Spacing();
 
-        if (ImGui::BeginChild("ScrollingResultsRegion", ImVec2(0, 0), ImGuiChildFlags_Borders, ImGuiWindowFlags_AlwaysVerticalScrollbar)) {
-            ImU32 alt_row = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 0.0f, 0.0f, 0.025f));
+        // Custom Spotlight-style result row drawer
+        // Custom Spotlight-style result row drawer
+        auto draw_spotlight_row = [&](const std::string& primary, const std::string& secondary, int id) -> bool {
+            ImGui::PushID(id);
+            
+            ImVec2 pos = ImGui::GetCursorScreenPos();
+            ImVec2 avail = ImGui::GetContentRegionAvail();
+            float row_height = 48.0f * ui_scale; 
+            
+            // Invisible button to capture clicks and hover states
+            ImGui::InvisibleButton("##row", ImVec2(avail.x, row_height));
+            bool hovered = ImGui::IsItemHovered();
+            
+            // TRACK DOUBLE CLICK HERE
+            bool double_clicked = hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+            
+            // 1. Draw rounded hover background
+            if (hovered) {
+                ImGui::GetWindowDrawList()->AddRectFilled(
+                    pos, ImVec2(pos.x + avail.x, pos.y + row_height),
+                    ImGui::ColorConvertFloat4ToU32(ImVec4(0.92f, 0.94f, 0.96f, 1.0f)), 
+                    8.0f * ui_scale
+                );
+            }
+            
+            // 2. Draw Primary Text (Filename / Content)
+            ImVec2 text_pos = ImVec2(pos.x + 12.0f * ui_scale, pos.y + 6.0f * ui_scale);
+            ImGui::GetWindowDrawList()->AddText(
+                text_pos, 
+                ImGui::ColorConvertFloat4ToU32(ImVec4(0.12f, 0.12f, 0.12f, 1.0f)), 
+                primary.c_str()
+            );
+            
+            // 3. Draw Secondary Text (Path / Line Num)
+            text_pos.y += 20.0f * ui_scale; 
+            ImGui::GetWindowDrawList()->AddText(
+                text_pos, 
+                ImGui::ColorConvertFloat4ToU32(ImVec4(0.55f, 0.55f, 0.58f, 1.0f)), 
+                secondary.c_str()
+            );
+            
+            // 4. Draw subtle bottom separator line
+            ImGui::GetWindowDrawList()->AddLine(
+                ImVec2(pos.x + 12.0f * ui_scale, pos.y + row_height), 
+                ImVec2(pos.x + avail.x - 12.0f * ui_scale, pos.y + row_height),
+                ImGui::ColorConvertFloat4ToU32(ImVec4(0.92f, 0.92f, 0.92f, 1.0f))
+            );
+            
+            ImGui::PopID();
+            return double_clicked; // RETURN THE DOUBLE CLICK STATE
+        };
+
+        if (ImGui::BeginChild("ScrollingResultsRegion", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_AlwaysVerticalScrollbar)) {
+            
+            // Animation state tracker for results fading in
+            static float list_alpha = 0.0f;
+            list_alpha = list_alpha + ((search_in_progress.load() ? 0.0f : 1.0f) - list_alpha) * 0.15f;
+            
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, list_alpha);
+
             int row = 0;
-
-            auto draw_alt_row_bg = [&]() {
-                if (row % 2 == 1) {
-                    ImVec2 rmin = ImGui::GetCursorScreenPos();
-                    ImVec2 rmax = ImVec2(rmin.x + ImGui::GetContentRegionAvail().x,
-                                          rmin.y + ImGui::GetTextLineHeightWithSpacing());
-                    ImGui::GetWindowDrawList()->AddRectFilled(rmin, rmax, alt_row);
-                }
-            };
-
             if (mode_toggle == 0) {
                 for (const auto& match : content_results) {
-                    draw_alt_row_bg();
-                    std::string label = match.file_path + "  [Line " + std::to_string(match.line_number) + "]";
-                    if (ImGui::Selectable(label.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick)) {
-                        if (ImGui::IsMouseDoubleClicked(0)) {
-                            open_in_editor(match.file_path, match.line_number);
-                        }
+                    std::string line_info = "Line " + std::to_string(match.line_number);
+                    if (draw_spotlight_row(match.file_path, line_info, row)) {
+                        open_in_editor(match.file_path, match.line_number);
                     }
                     ++row;
                 }
             } else {
                 for (const auto& match : filename_results) {
-                    draw_alt_row_bg();
-                    std::string label = match.file_path + " (" + match.file_name + ")";
-                    if (ImGui::Selectable(label.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick)) {
-                        if (ImGui::IsMouseDoubleClicked(0)) {
-                            open_in_editor(match.file_path, 1);
-                        }
+                    if (draw_spotlight_row(match.file_name, match.file_path, row)) {
+                        open_in_editor(match.file_path, 1);
                     }
                     ++row;
                 }
             }
+            ImGui::PopStyleVar();
             ImGui::EndChild();
         }
 
         if (indexing) ImGui::EndDisabled();
     }
+    
 
     void UI::open_in_editor(const std::string& file_path, int line_number) {
         pid_t pid = fork();

@@ -14,7 +14,7 @@ namespace Engine {
         if(query_tokens.empty()) {
             return {};
         }
-        return db.execute_phrase_search(query_tokens);
+        return db.execute_phrase_search(query_tokens, 200);
     }
 
     std::vector<FileMatch> QueryEngine::search_filename(const std::string &file_name) {
