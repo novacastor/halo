@@ -26,21 +26,12 @@ namespace Engine {
     }
 
     bool UI::init(int width, int height, const std::string& title) {
-        // IMPORTANT: platform selection has to happen via glfwInitHint(), *before*
-        // glfwInit() runs. The previous code called glfwWindowHint(GLFW_PLATFORM, ...)
-        // after glfwInit() had already picked a backend — that call was a silent
-        // no-op, so the app was very likely running under XWayland the whole time
-        // despite the comment. XWayland fakes HiDPI scaling by rendering at 1x and
-        // stretching, which is exactly what reads as jagged/pixelated text on a
-        // scaled Hyprland output.
-        //
-        // glfwPlatformSupported() can be (and must be) called before glfwInit().
-        // If the GLFW build doesn't have the Wayland backend compiled in at all
-        // (common with vcpkg's default glfw3 port, which usually only enables
-        // X11 unless you opt in), forcing GLFW_PLATFORM_WAYLAND makes glfwInit()
-        // fail outright rather than silently falling back — so check first.
-        if (glfwPlatformSupported(GLFW_PLATFORM_WAYLAND)) {
+        const char* wayland_display = std::getenv("WAYLAND_DISPLAY");
+
+        if (wayland_display != nullptr && glfwPlatformSupported(GLFW_PLATFORM_WAYLAND)) {
             glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
+        }else if (glfwPlatformSupported(GLFW_PLATFORM_X11)) {
+            glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
         } else {
             std::cerr << "NOTE: This GLFW build has no Wayland backend compiled in, "
                           "so it will fall back to X11/XWayland (blurry text on a "
