@@ -20,24 +20,26 @@ namespace Engine {
         sqlite3_stmt* stmt;
 
         if (sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-            cerr << "Failed to execute print query: " << sqlite3_errmsg(db_handle) << endl;
+            LOG_ERROR(std::string("Failed to prepare pring query statement: ") + sqlite3_errmsg(db_handle));
             return;
         }
-
-        cout << endl << "=================== INVERTED INDEX DATABASE ===================" << endl;
-        cout << "TOKEN               | LINE | FILE PATH" << endl;
-        cout << "---------------------------------------------------------------" << endl;
+    
+        LOG_INFO("=================== INVERTED INDEX DATABASE ===================");
+        LOG_INFO("TOKEN               | LINE | FILE PATH");
+        LOG_INFO("---------------------------------------------------------------");
 
         while(sqlite3_step(stmt) == SQLITE_ROW) {
             const unsigned char* token = sqlite3_column_text(stmt, 0);
             const unsigned char* path  = sqlite3_column_text(stmt, 1);
             int line                   = sqlite3_column_int(stmt, 2);
 
-            cout << left << setw(19) << reinterpret_cast<const char*>(token) 
-            << " | " << setw(4) << line << " | " 
-            << reinterpret_cast<const char*>(path) << '\n';
+            std::ostringstream line_out;
+            line_out << std::left << std::setw(19) << reinterpret_cast<const char*>(token)
+                    << " | " << std::setw(4) << line << " | "
+                    << reinterpret_cast<const char*>(path);
+            LOG_INFO(line_out.str());
         }
-        cout << "===============================================================" << endl << endl;
+        LOG_INFO("===============================================================");
         sqlite3_finalize(stmt);
     }
 
@@ -48,22 +50,25 @@ namespace Engine {
                 double file_size_kb = static_cast<double>(file_size_bytes) / 1024.0;
                 double file_size_mb = file_size_kb / 1024.0;
 
-                cout << "\n========================================\n";
-                cout << "DATABASE STORAGE METRICS:\n";
-                cout << "----------------------------------------\n";
-                cout << "Database File: " << db_path << "\n";
+                LOG_INFO("========================================");
+                LOG_INFO("DATABASE STORAGE METRICS:");
+                LOG_INFO("----------------------------------------");
+                LOG_INFO("Database File: " + db_path);
                 
+                std::ostringstream line_out;
                 if (file_size_mb >= 1.0) {
-                    cout << "Disk Footprint: " << fixed << setprecision(2) << file_size_mb << " MB\n";
+                    line_out << "Disk Footprint: " << fixed << setprecision(2) << file_size_mb << "MB";
+                    LOG_INFO(line_out.str());
                 } else {
-                    cout << "Disk Footprint: " << fixed << setprecision(2) << file_size_kb << " KB (" << file_size_bytes << " bytes)\n";
+                    line_out << "Disk Footprint: " << fixed << setprecision(2) << file_size_kb << "KB (" << file_size_bytes << "bytes)";
+                    LOG_INFO(line_out.str());
                 }
-                cout << "========================================\n";
+                LOG_INFO("========================================");
             } else {
-                cerr << "Database file not found: " << db_path << '\n';
+                LOG_ERROR("Database file not found: " + db_path);
             }
         } catch (const filesystem::filesystem_error& e) {
-            cerr << "Filesystem Error checking DB size: " << e.what() << "\n";
+            LOG_ERROR("Filesystem Error checking DB size: " + std::string(e.what()));
         }
     }
 }

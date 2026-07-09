@@ -10,7 +10,6 @@ struct StringHash {
     size_t operator()(std::string_view sv) const { return std::hash<std::string_view>{}(sv); }
 };
 
-
 namespace Engine {
     
     class Crawler {
@@ -24,7 +23,7 @@ namespace Engine {
             ".py", ".sh", ".bash", ".lua",
             ".js", ".jsx", ".ts", ".tsx", ".html", ".css",
             ".json", ".yaml", ".yml", ".toml", ".xml", ".ini",
-            ".md", ".txt", "dotfiles" 
+            ".md", ".txt"
         };
         
         const std::unordered_set<std::string, StringHash, std::equal_to<>> FOLDER_BLACKLIST = {

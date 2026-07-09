@@ -1,48 +1,49 @@
 #include "indexing/indexerPipeline.hpp"
 #include "indexing/tokenizer.hpp"
 #include "indexing/threadpool.hpp"
-#include <iostream>
+#include "engine/log.hpp"
 #include <filesystem>
 
-using namespace std;
-using Clock = chrono::steady_clock;
+using Clock = std::chrono::steady_clock;
 
 void Engine::IndexerPipeline::print_profile(Clock::time_point t_start) {
-    cout << "\n\n===== PROFILE =====\n";
-    cout << "File Read : " << file_read_time_us.load() / 1'000'000.0 << " s\n";
-    cout << "Tokenize  : " << tokenize_time_us.load() / 1'000'000.0 << " s\n";
-    cout << "Database  : " << db_time_us.load() / 1'000'000.0 << " s\n";
+    LOG_INFO("\n\n====== PROFILE ======\n");
+    LOG_INFO("File Read : " + std::to_string(file_read_time_us.load() / 1'000'000.0) + " s");
+    LOG_INFO("Tokenize  : " + std::to_string(tokenize_time_us.load() / 1'000'000.0) + " s");
+    LOG_INFO("Database  : " + std::to_string(db_time_us.load() / 1'000'000.0) + " s");
     
-    cout << "Total Files processed: " << total_files_processed << endl;
-    cout << "Total Data processed: " << total_content_size << " bytes " << endl;
+    LOG_INFO("Total Files processed: " + std::to_string(total_files_processed));
+    LOG_INFO("Total Data processed: " + std::to_string(total_content_size) + " bytes");
     auto t_end = Clock::now();
-    std::cout << "Index build: " << std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count() / 1000.0 << " s\n";
+    LOG_INFO("Index build: " + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count() / 1000.0) + " s");
 }
 
-void Engine::IndexerPipeline::execute(const vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
+void Engine::IndexerPipeline::execute(const std::vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
 
     size_t file_change_count = 0;
     for(const auto &candidate: code_candidates) {
         if(!db.file_is_up_to_date(candidate.path, candidate.mtime)) file_change_count++;
     }
+
+    total_files_to_index.store(file_change_count);
+    total_files_indexed.store(0);
     
     bool rebuild_required = false;
     if(file_change_count >= 1000) rebuild_required = true;
 
     if(rebuild_required) db.begin_bulk_index();
-    this->batch_jobs(code_candidates, db);
     auto t_start = Clock::now();
+    this->batch_jobs(code_candidates, db);
     if(rebuild_required) db.end_bulk_index();
 
     print_profile(t_start);
 }
 
-string Engine::IndexerPipeline::open_file(const string &path) {
-    ifstream file(path);
+std::string Engine::IndexerPipeline::open_file(const std::string &path) {
+    std::ifstream file(path);
 
     if(!file.is_open()) {
-        cerr << endl << "File: " << path << endl;
-        cerr << "Can't open file (Doesn't exist or Permission denied)" << endl;
+        LOG_ERROR("Can't open file " + path + " Doesn't exist or permission denied");
         return "";
     }
     
@@ -60,11 +61,11 @@ string Engine::IndexerPipeline::open_file(const string &path) {
     return contents;
 }
 
-void Engine::IndexerPipeline::batch_jobs(const vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
-    size_t num_threads = thread::hardware_concurrency();
+void Engine::IndexerPipeline::batch_jobs(const std::vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
+    size_t num_threads = std::thread::hardware_concurrency();
     if(num_threads == 0) num_threads = 4;
     ThreadPool pool(num_threads);
-    thread db_thread(&Engine::IndexerPipeline::database_writer_thread, this, std::ref(db));
+    std::thread db_thread(&Engine::IndexerPipeline::database_writer_thread, this, std::ref(db));
     
     size_t batch_size = (code_candidates.size() + num_threads - 1)  / num_threads;
     if(batch_size == 0) batch_size = 1;
@@ -72,36 +73,41 @@ void Engine::IndexerPipeline::batch_jobs(const vector<Engine::CodeCandidate> &co
     
     for(size_t i = 0; i < code_candidates.size(); i += batch_size) {
         auto start_it = code_candidates.begin() + i;
-        auto end_it = code_candidates.begin() + min(i + batch_size, code_candidates.size());
-        vector<Engine::CodeCandidate> batch(start_it, end_it);
+        auto end_it = code_candidates.begin() + std::min(i + batch_size, code_candidates.size());
+        std::vector<Engine::CodeCandidate> batch(start_it, end_it);
         pool.enqueue([batch = move(batch), &db, this] {
             this->process_batch(batch, db);
         });
     }
-    cout << endl << "waiting for pool to finish" << endl;
+
+    LOG_INFO("Waiting for File Indexing to Finish. ");
     pool.wait();
     
     db_queue.push({"", {}, true, 0});
     db_thread.join();
+    LOG_INFO("File Indexing complete. ");
 }
 
-void Engine::IndexerPipeline::process_batch(const vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
+void Engine::IndexerPipeline::process_batch(const std::vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db) {
     for(const auto &candidate: code_candidates) {
-
+        if(stop_requested.load()) {
+            LOG_INFO("Stop Requested, exiting process_batch early. ");
+            break;
+        }
         if(db.file_is_up_to_date(candidate.path, candidate.mtime)) continue;
         
         auto t1 = Clock::now();
-        string file_contents = open_file(candidate.path);
+        std::string file_contents = open_file(candidate.path);
         auto t2 = Clock::now();
         
-        file_read_time_us += chrono::duration_cast<chrono::microseconds>(t2 - t1).count();
+        file_read_time_us += std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
         if(file_contents.empty()) continue;
         
         auto t3 = Clock::now();
         auto tokens = Engine::Tokenizer::tokenize(file_contents);
         auto t4 = Clock::now();
         
-        tokenize_time_us += chrono::duration_cast<chrono::microseconds>(t4 - t3).count();
+        tokenize_time_us += std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count();
         
         db_queue.push({candidate.path, move(tokens), false, candidate.mtime});
     }
@@ -118,9 +124,15 @@ void Engine::IndexerPipeline::database_writer_thread(Engine::Database &db) {
         
         int batch_count = 0;
         while(true) {
+            if(stop_requested.load()){
+                LOG_INFO("Stop Requested, flushing current transaction and exiting writer thread. ");
+                break; 
+            }
+
             int doc_id = db.insert_document(job.path, job.mtime);
             if(doc_id != -1 && !job.tokens.empty()) {
                 db.insert_tokens(doc_id, job.tokens);
+                total_files_indexed++;
             }
             
             batch_count++;
@@ -137,6 +149,6 @@ void Engine::IndexerPipeline::database_writer_thread(Engine::Database &db) {
         
         db.commit_transaction();
         auto t_end = Clock::now();
-        db_time_us += chrono::duration_cast<chrono::microseconds>(t_end - t_start).count();
+        db_time_us += std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_start).count();
     }
 }

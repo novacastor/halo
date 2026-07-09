@@ -1,13 +1,11 @@
 #include "crawler/crawler.hpp"
-#include <iostream>
+#include "engine/log.hpp"
 #include <filesystem>
 #include <chrono>
 
-using namespace std;
-
 namespace fs = std::filesystem;
 
-Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const string &target_path) {
+Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const std::string &target_path) {
     Engine::CrawlBatch batch;
 
     batch.all_files.reserve(10000);
@@ -15,7 +13,7 @@ Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const string &targe
 
     fs::path root_path(target_path);
 
-    string path, name, ext;
+    std::string path, name, ext;
     
     for(auto it = fs::recursive_directory_iterator(root_path, fs::directory_options::skip_permission_denied); it != fs::end(it); ++it) {
         const auto &entry = *it;
@@ -41,15 +39,16 @@ Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const string &targe
         if(EXTENSION_WHITELIST.find(ext) == EXTENSION_WHITELIST.end()) continue;
         
         auto ftime = entry.last_write_time();
-        long long mtime = chrono::duration_cast<chrono::seconds>(fs::file_time_type::clock::to_sys(ftime).time_since_epoch()).count();
+        long long mtime = std::chrono::duration_cast<std::chrono::seconds>(fs::file_time_type::clock::to_sys(ftime).time_since_epoch()).count();
         
         batch.code_files.push_back({path, mtime});
     }
     return batch;
 }
 
-Engine::CrawlBatch Engine::Crawler::run_crawler(const string &target_path) {
+Engine::CrawlBatch Engine::Crawler::run_crawler(const std::string &target_path) {
     Engine::CrawlBatch batch = process_filesystem_crawl(target_path);
+    LOG_INFO("File System Crawl Complete. ");
     return batch;
 }
 

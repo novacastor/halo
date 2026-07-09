@@ -1,0 +1,61 @@
+[2026-07-09 16:22:24] [INFO] Initializing Subsystems. 
+[2026-07-09 16:22:24] [INFO] Database successfully configured. 
+[2026-07-09 16:22:24] [INFO] Loaded 792 existing file mtimes
+[2026-07-09 16:22:24] [INFO] Query Engine successfully initalized. 
+[2026-07-09 16:22:24] [INFO] File System Crawl Complete. 
+[2026-07-09 16:22:26] [INFO] Finished indexing filesystem. 
+[2026-07-09 16:22:26] [INFO] Waiting for indexing to Finish. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:26] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:27] [INFO] File Batch Indexed successfully. 
+[2026-07-09 16:22:27] [INFO] Indexing complete. 
+[2026-07-09 16:24:48] [INFO] Initializing Subsystems. 
+[2026-07-09 16:24:48] [INFO] Database successfully configured. 
+[2026-07-09 16:24:48] [INFO] Loaded 8210 existing file mtimes
+[2026-07-09 16:24:48] [INFO] Query Engine successfully initalized. 
+[2026-07-09 16:24:49] [INFO] File System Crawl Complete. 
+[2026-07-09 16:24:50] [INFO] Finished indexing filesystem. 
+[2026-07-09 16:24:50] [INFO] Waiting for indexing to Finish. 
+[2026-07-09 16:33:49] [INFO] Indexing complete. 
+[2026-07-09 16:35:14] [INFO] Finished Optimizing search indexes. 
+[2026-07-09 16:35:14] [INFO] Crawl:            166 ms
+[2026-07-09 16:35:14] [INFO] Filesystem sync:  1416 ms
+[2026-07-09 16:35:14] [INFO] Index build:      623939 ms
+[2026-07-09 16:57:27] [INFO] Initializing Subsystems. 
+[2026-07-09 16:57:27] [INFO] Database successfully configured. 
+[2026-07-09 16:57:27] [INFO] Loaded 27124 existing file mtimes
+[2026-07-09 16:57:27] [INFO] Query Engine successfully initalized. 
+[2026-07-09 16:57:27] [INFO] Configured Wayland Platform
+[2026-07-09 16:57:27] [INFO] GLFW window context created successfully. 
+[2026-07-09 16:57:27] [INFO] File System Crawl Complete. 
+[2026-07-09 16:57:29] [INFO] Finished indexing filesystem. 
+[2026-07-09 16:57:29] [INFO] Waiting for File Indexing to Finish. 
+[2026-07-09 16:57:29] [INFO] File Indexing complete. 
+[2026-07-09 16:57:29] [INFO] 
+
+====== PROFILE ======
+
+[2026-07-09 16:57:29] [INFO] File Read : 0.001471 s
+[2026-07-09 16:57:29] [INFO] Tokenize  : 0.008605 s
+[2026-07-09 16:57:29] [INFO] Database  : 0.624001 s
+[2026-07-09 16:57:29] [INFO] Total Files processed: 70
+[2026-07-09 16:57:29] [INFO] Total Data processed: 288178 bytes
+[2026-07-09 16:57:29] [INFO] Index build: 0.627000 s
+[2026-07-09 16:57:29] [INFO] Crawl:            270 ms
+[2026-07-09 16:57:29] [INFO] Filesystem sync:  1615 ms
+[2026-07-09 16:57:29] [INFO] Index build:      633 ms

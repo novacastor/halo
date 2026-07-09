@@ -5,11 +5,11 @@
 
 #include <GLFW/glfw3.h>
 #include <filesystem>
-#include <iostream>
 #include <cstdlib>
 #include <unistd.h>
 #include <sys/types.h>
 
+extern std::atomic<bool> g_shutdown_requested;
 namespace Engine {
 
     UI::UI(Engine::App& app) : app(app) {}
@@ -30,8 +30,10 @@ namespace Engine {
 
         if (wayland_display != nullptr && glfwPlatformSupported(GLFW_PLATFORM_WAYLAND)) {
             glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_WAYLAND);
+            LOG_INFO("Configured Wayland Platform");
         }else if (glfwPlatformSupported(GLFW_PLATFORM_X11)) {
             glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+            LOG_INFO("Configured X11 Platform");
         } else {
             std::cerr << "NOTE: This GLFW build has no Wayland backend compiled in, "
                           "so it will fall back to X11/XWayland (blurry text on a "
@@ -43,7 +45,7 @@ namespace Engine {
         }
 
         if (!glfwInit()) {
-            std::cerr << "CRITICAL: Failed to initialize GLFW\n";
+            LOG_ERROR("CRITICAL: Failed to initialize GLFW");
             return false;
         }
 
@@ -54,7 +56,7 @@ namespace Engine {
 
         window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
         if (!window) {
-            std::cerr << "CRITICAL: Failed to create GLFW window context\n";
+            LOG_ERROR("CRITICAL: Failed to create GLFW window context");
             glfwTerminate();
             return false;
         }
@@ -64,6 +66,7 @@ namespace Engine {
         glfwSetWindowUserPointer(window, this);
         glfwSetWindowContentScaleCallback(window, &UI::on_content_scale_changed);
 
+        LOG_INFO("GLFW window context created successfully. ");
         // Wayland delivers the surface's content-scale asynchronously after the
         // window is mapped, so querying it immediately after creation can still
         // return a stale 1.0 on some compositors. Pumping events a couple of times
@@ -213,7 +216,8 @@ namespace Engine {
     }
 
     void UI::run() {
-        while (!glfwWindowShouldClose(window)) {
+
+        while (!glfwWindowShouldClose(window) && !g_shutdown_requested.load()) {
 
             if (search_in_progress.load()) {
                 glfwPollEvents();
@@ -276,7 +280,6 @@ namespace Engine {
     void UI::draw_header_region() {
         const bool indexing = app.is_indexing();
 
-        // Small status dot, menu-bar style: amber while indexing, soft green when idle.
         ImVec4 dot_color = indexing ? ImVec4(0.80f, 0.62f, 0.30f, 1.0f)
                                      : ImVec4(0.42f, 0.62f, 0.44f, 1.0f);
         float dot_r = 4.0f * ui_scale;
@@ -292,9 +295,14 @@ namespace Engine {
 
         ImGui::SameLine(ImGui::GetWindowWidth() - 120.0f * ui_scale);
         if (indexing) {
-            ImGui::BeginDisabled();
-            ImGui::Button("Syncing...", ImVec2(100.0f * ui_scale, 0));
-            ImGui::EndDisabled();
+            long long done  = app.get_pipeline().get_files_indexed();
+            long long total = app.get_pipeline().get_files_total();
+            float frac = total > 0 ? (float)done / (float)total : 0.0f;
+
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.36f, 0.42f, 0.49f, 0.55f));
+            ImGui::ProgressBar(frac, ImVec2(-1.0f, 3.0f * ui_scale), "");
+            ImGui::PopStyleColor();
+            ImGui::TextDisabled("%lld / %lld Files Indexed", done, total);
         } else {
             if (ImGui::Button("Sync Index", ImVec2(100.0f * ui_scale, 0))) {
                 app.build_search_index();
@@ -501,7 +509,7 @@ namespace Engine {
         pid_t pid = fork();
         
         if (pid == -1) {
-            std::cerr << "Failed to fork process for editor launch.\n";
+            LOG_ERROR("Failed to fork process for editor launch");
             return;
         } 
         
@@ -509,7 +517,7 @@ namespace Engine {
             std::string line_arg = std::to_string(line_number);
             
             execlp("kate", "kate", "--line", line_arg.c_str(), file_path.c_str(), nullptr);
-            std::cerr << "Critical: execlp failed to launch editor.\n";
+            LOG_ERROR("exelp failed to launch editor");
             exit(EXIT_FAILURE); 
         }
     }

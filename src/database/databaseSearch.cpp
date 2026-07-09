@@ -1,10 +1,8 @@
 #include "database/database.hpp"
-#include <iostream>
-using namespace std;
 
 namespace Engine {
-    static string escape_like(const string &input) {
-        string escaped;
+    static std::string escape_like(const std::string &input) {
+        std::string escaped;
         escaped.reserve(input.size());
         for(char c : input) {
             if(c == '%' || c == '_' || c == '\\') escaped += '\\';
@@ -13,12 +11,14 @@ namespace Engine {
         return escaped;
     }
 
-    vector<MatchResult> Database::execute_phrase_search(const vector<TokenMatch>& query_tokens, int limit) {
-        vector<MatchResult> result;
-        if(query_tokens.empty()) return result;
-        
-        lock_guard<mutex> lock(db_mutex);
-        string sql =
+    std::vector<MatchResult> Database::execute_phrase_search(const std::vector<TokenMatch>& query_tokens, int limit) {
+        std::vector<MatchResult> result;
+        if(query_tokens.empty()) {
+            LOG_ERROR("query phrase empty exiting early. ");
+            return result;
+        }
+        std::lock_guard<std::mutex> lock(db_mutex);
+        std::string sql =
             "SELECT "
             "    d.file_path, "
             "    i.line_number, "
@@ -59,7 +59,7 @@ namespace Engine {
 
         sqlite3_stmt *stmt = nullptr;
         if (sqlite3_prepare_v2(db_handle, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
-            cerr << "Search preparation error: " << sqlite3_errmsg(db_handle) << endl;
+            LOG_ERROR(std::string("Query Search statement preparation failed ") + sqlite3_errmsg(db_handle));
             return result;
         }
 
@@ -70,7 +70,7 @@ namespace Engine {
         sqlite3_bind_int(stmt, query_tokens.size() + 1, limit);
 
         while (sqlite3_step(stmt) == SQLITE_ROW) {
-            string file_path = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            std::string file_path = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
             int line_number = sqlite3_column_int(stmt, 1);
             int matched_tokens = sqlite3_column_int(stmt, 2);
 
@@ -85,10 +85,10 @@ namespace Engine {
         return result;
     }
 
-    vector<FileMatch> Database::execute_filename_search(const string &pattern) {
-        vector<FileMatch> results;
+    std::vector<FileMatch> Database::execute_filename_search(const std::string &pattern) {
+        std::vector<FileMatch> results;
         
-        lock_guard<mutex> lock(db_mutex);
+        std::lock_guard<std::mutex> lock(db_mutex);
 
         const char *sql = 
             "SELECT file_path, file_name FROM filesystem_index "
@@ -97,16 +97,16 @@ namespace Engine {
 
         sqlite3_stmt *stmt = nullptr;
         if(sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-            cerr << "Failed to prepare file search statement: " << sqlite3_errmsg(db_handle) << endl;
+            LOG_ERROR(std::string("Filename search statement preparation failed ") + sqlite3_errmsg(db_handle));
             return results;
         }
 
-        string like_pattern = "%" + escape_like(pattern) + "%";
+        std::string like_pattern = "%" + escape_like(pattern) + "%";
         sqlite3_bind_text(stmt, 1, like_pattern.c_str(), -1, SQLITE_TRANSIENT);
 
         while(sqlite3_step(stmt) == SQLITE_ROW) {
-            string path = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-            string name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+            std::string path = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            std::string name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
             results.push_back({path, name});
         }
 

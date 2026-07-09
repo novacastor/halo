@@ -1,14 +1,11 @@
 #include "database/database.hpp"
-#include <iostream>
-
-using namespace std;
 
 namespace Engine {
-    int Database::insert_document(const string &file_path, long long mtime) {
-        lock_guard<mutex> lock(db_mutex);
+    int Database::insert_document(const std::string &file_path, long long mtime) {
+        std::lock_guard<std::mutex> lock(db_mutex);
 
         if(!db_handle) {
-            cerr << "db_handle missing " << endl;
+            LOG_ERROR("Database handle missing, can't insert document.");
             return -1;
         }
 
@@ -43,11 +40,13 @@ namespace Engine {
         return -1;
     }
     
-    bool Database::insert_tokens(int document_id, const vector<TokenMatch> &tokens) {
-        lock_guard<mutex> lock(db_mutex);
+    bool Database::insert_tokens(int document_id, const std::vector<TokenMatch> &tokens) {
+        std::lock_guard<std::mutex> lock(db_mutex);
 
         if(!db_handle || tokens.empty()) {
-            if(!db_handle) cerr << "db_handle missing" << endl;
+            if(!db_handle) {
+                LOG_ERROR("Database handle missing can't insert tokens.");
+            }
             return false;
         }
 
@@ -67,7 +66,7 @@ namespace Engine {
         return true;
     }
 
-    int Database::get_or_create_token_id(const string &token) {
+    int Database::get_or_create_token_id(const std::string &token) {
         auto it = token_cache.find(token);
         if(it != token_cache.end()) return it->second;
 
@@ -84,7 +83,7 @@ namespace Engine {
         sqlite3_bind_text(insert_token_row_stmt, 1, token.c_str(), -1, SQLITE_STATIC);
 
         if(sqlite3_step(insert_token_row_stmt) != SQLITE_DONE) {
-            cerr << "Failed to insert token: " << sqlite3_errmsg(db_handle) << endl;
+            LOG_ERROR(std::string("Failed to insert token ") + sqlite3_errmsg(db_handle));
             return -1;
         }
 

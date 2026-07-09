@@ -1,9 +1,11 @@
 #include "engine/engineApp.hpp"
+#include "engine/log.hpp"
 
 namespace Engine {
     App::App() : db(config.database), query_engine(db) {}
 
     App::~App() {
+        pipeline.request_stop();
         if(index_worker.joinable()) {
             index_worker.join();
         }
@@ -11,11 +13,11 @@ namespace Engine {
 
     bool App::init() {
         if(!db.init()) {
-            std::cout << "db initialization failed" << std::endl;
+            LOG_ERROR("Database initialization Failed. ");
             return false;
         }
         if(!query_engine.init()) {
-            std::cout << "query_engine initalization failed" << std::endl;
+            LOG_ERROR("Query Engine initialization failed. ");
             return false;
         }
         return true;
@@ -38,11 +40,11 @@ namespace Engine {
             build_index(batch);
             auto t3 = Clock::now();
 
-            indexing_active.store(false);        
-           
-            std::cout << "Crawl:            " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << " ms\n";
-            std::cout << "Filesystem sync:  " << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() << " ms\n";
-            std::cout << "Index build:      " << std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2).count() << " ms\n";
+            indexing_active.store(false);   
+                       
+            LOG_INFO("Crawl:            " + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count()) + " ms");
+            LOG_INFO("Filesystem sync:  " + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()) + " ms");
+            LOG_INFO("Index build:      " + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2).count()) + " ms");
         });
     }
     void App::run() {
@@ -69,6 +71,6 @@ namespace Engine {
         auto end_time = Clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count();
         
-        std::cout << "Execution Time: " << duration << " seconds.\n";
+        LOG_INFO("Execution Time: " + std::to_string(duration) + " seconds");
     }
 }

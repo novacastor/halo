@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "indexing/tokenizer.hpp"
 #include "engine/types.hpp"
+#include "engine/log.hpp"
 
 namespace Engine {
     class Database {

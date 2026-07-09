@@ -21,6 +21,9 @@ namespace Engine {
         long long get_read_time_s() const { return file_read_time_us; }
         long long get_tokenize_time_s() const { return tokenize_time_us; }
         long long get_db_time_s() const { return db_time_us; }
+        long long get_files_indexed() const { return total_files_indexed.load(); }
+        long long get_files_total() const { return total_files_to_index.load(); }
+        void request_stop() { stop_requested.store(true); }
 
     private:
         std::string open_file(const std::string &path);
@@ -36,5 +39,8 @@ namespace Engine {
         std::atomic<long long> db_time_us{0};
         std::atomic<long long> total_files_processed{0};
         std::atomic<long long> total_content_size{0};
+        std::atomic<long long> total_files_indexed{0};
+        std::atomic<long long> total_files_to_index{0};
+        std::atomic<bool> stop_requested{false};
     };
 }

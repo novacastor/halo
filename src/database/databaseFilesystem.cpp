@@ -1,11 +1,8 @@
 #include "database/database.hpp"
-#include <iostream>
-
-using namespace std;
 
 namespace Engine {
-    bool Database::insert_file(const string &name, const string &ext, const string &path) {
-        lock_guard<mutex> lock(db_mutex);
+    bool Database::insert_file(const std::string &name, const std::string &ext, const std::string &path) {
+        std::lock_guard<std::mutex> lock(db_mutex);
 
         if(!upsert_fs_stmt) return false;
 
@@ -16,15 +13,15 @@ namespace Engine {
         sqlite3_bind_text(upsert_fs_stmt, 3, path.c_str(), -1, SQLITE_STATIC);
 
         if(sqlite3_step(upsert_fs_stmt) != SQLITE_DONE) {
-            cerr << " DB error (insert file): " << sqlite3_errmsg(db_handle) << endl;
+            LOG_ERROR(std::string("DB error can't insert file ") + sqlite3_errmsg(db_handle));
             return false;
         }
 
         return true;
     }
 
-    bool Database::delete_file(const string &path) {
-        lock_guard<mutex> lock(db_mutex);
+    bool Database::delete_file(const std::string &path) {
+        std::lock_guard<std::mutex> lock(db_mutex);
 
         if(!delete_fs_stmt) return false;
 
@@ -32,21 +29,21 @@ namespace Engine {
         sqlite3_bind_text(delete_fs_stmt, 1, path.c_str(), -1, SQLITE_STATIC);
 
         if(sqlite3_step(delete_fs_stmt) != SQLITE_DONE) {
-            cerr << "Inotify DB error (delete file): " << sqlite3_errmsg(db_handle) << endl;
+            LOG_ERROR(std::string("DB error can't delete file ") + sqlite3_errmsg(db_handle));
             return false;
         }
 
         return true;
     }
     
-    bool Database::delete_directory(const string &dir_path) {
-        lock_guard<mutex> lock(db_mutex);
+    bool Database::delete_directory(const std::string &dir_path) {
+        std::lock_guard<std::mutex> lock(db_mutex);
         
         if(!delete_fs_dir_stmt) return false;
         
         sqlite3_reset(delete_fs_dir_stmt);    
         
-        string wildcard_path = dir_path;
+        std::string wildcard_path = dir_path;
         if(wildcard_path.back() != '/') {
             wildcard_path += '/';
         }
@@ -56,14 +53,14 @@ namespace Engine {
         sqlite3_bind_text(delete_fs_dir_stmt, 2, wildcard_path.c_str(), -1, SQLITE_STATIC);
         
         if(sqlite3_step(delete_fs_dir_stmt) != SQLITE_DONE) {
-            cerr << "Inotify DB error (delete directory): " << sqlite3_errmsg(db_handle) << endl;
+            LOG_ERROR(std::string("DB error can't delete directory ") + sqlite3_errmsg(db_handle));
             return false;
         }
         
         return true;
     }
     
-    void Database::commit_filesystem_index(const vector<FSEntry> &files) {
+    void Database::commit_filesystem_index(const std::vector<FSEntry> &files) {
         if(files.empty()) return;
 
         begin_transaction();
@@ -75,6 +72,8 @@ namespace Engine {
         }
 
         commit_transaction();
+
+        LOG_INFO("Finished indexing filesystem. ");
     }
 
     bool Database::file_is_up_to_date(const std::string& path, long long mtime) const {

@@ -21,6 +21,7 @@ add_executable(
 
     src/engine/main.cpp
     src/engine/engineApp.cpp
+    src/engine/log.cpp
 
     src/crawler/crawler.cpp    
     

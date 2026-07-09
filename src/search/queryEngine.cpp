@@ -1,11 +1,12 @@
 #include "search/queryEngine.hpp"
 #include "indexing/tokenizer.hpp"
-#include <iostream>
+#include "engine/log.hpp"
 
 namespace Engine {
     QueryEngine::QueryEngine(Engine::Database &db) : db(db) {}
 
     bool QueryEngine::init() {
+        LOG_INFO("Query Engine successfully initalized. ");
         return true;
     }
 
