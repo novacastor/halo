@@ -22,12 +22,15 @@ namespace Engine {
         bool prepare_statements();
         sqlite3 *get_db_handle();
 
-        int insert_document(const std::string &file_path, long long mtime);
+        int upsert_document(const std::string &file_path, long long mtime);
         bool insert_tokens(int document_id, const std::vector<TokenMatch> &tokens);
         
         bool insert_file(const std::string &name, const std::string &ext, const std::string &path);
         bool delete_file(const std::string &path);
         bool delete_directory(const std::string &dir_path);
+        bool add_directory(const std::string &dir_path);
+        bool delete_document(const std::string &file_path);
+        bool delete_documents_under_directory(const std::string &dir_path);
         
         void load_existing_mtimes();
         void commit_filesystem_index(const std::vector<FSEntry> &files);
@@ -49,14 +52,19 @@ namespace Engine {
         sqlite3_stmt *insert_token_stmt = nullptr;
         sqlite3_stmt *insert_token_row_stmt = nullptr;
         
-        sqlite3_stmt *select_doc_stmt = nullptr;
-        sqlite3_stmt *insert_doc_stmt = nullptr;
-        sqlite3_stmt *delete_doc_stmt = nullptr;
-        sqlite3_stmt* update_mtime_stmt = nullptr;
+        sqlite3_stmt *select_document_id_stmt = nullptr;
+        sqlite3_stmt *insert_document_stmt = nullptr;
+        sqlite3_stmt *delete_document_tokens_stmt = nullptr;
+        sqlite3_stmt *delete_document_stmt = nullptr;
+        sqlite3_stmt *delete_inverted_dir_stmt = nullptr;
+        sqlite3_stmt *delete_documents_dir_stmt = nullptr;
+        sqlite3_stmt *update_document_mtime_stmt = nullptr;
+
         
         sqlite3_stmt *upsert_fs_stmt = nullptr;
         sqlite3_stmt *delete_fs_stmt = nullptr;
         sqlite3_stmt *delete_fs_dir_stmt = nullptr;
+        sqlite3_stmt *add_fs_dir_stmt = nullptr;
         
         std::unordered_map<std::string, long long> existing_mtimes;
         std::unordered_map<std::string, int> token_cache;

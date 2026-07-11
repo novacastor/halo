@@ -13,10 +13,15 @@
 namespace Engine {
     class IndexerPipeline {
     public:
-        IndexerPipeline() = default;
-        ~IndexerPipeline() = default;
+        IndexerPipeline(Engine::Database &db) : db(db){
+            db_thread = std::thread(&Engine::IndexerPipeline::database_writer_thread, this);
+        }
+        ~IndexerPipeline() {
+            db_queue.push({"", {}, true, 0});
+            if(db_thread.joinable()) db_thread.join();
+        }
 
-        void execute(const std::vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db);
+        void execute(const std::vector<Engine::CodeCandidate> &code_candidates);
 
         long long get_read_time_s() const { return file_read_time_us; }
         long long get_tokenize_time_s() const { return tokenize_time_us; }
@@ -24,15 +29,18 @@ namespace Engine {
         long long get_files_indexed() const { return total_files_indexed.load(); }
         long long get_files_total() const { return total_files_to_index.load(); }
         void request_stop() { stop_requested.store(true); }
+        void add_job_to_queue(const CodeCandidate &candidate);
 
     private:
         std::string open_file(const std::string &path);
-        void batch_jobs(const std::vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db);
-        void process_batch(const std::vector<Engine::CodeCandidate> &code_candidates, Engine::Database &db);
-        void database_writer_thread(Engine::Database &db);
+        void batch_jobs(const std::vector<Engine::CodeCandidate> &code_candidates);
+        void process_batch(const std::vector<Engine::CodeCandidate> &code_candidates);
+        void database_writer_thread();
         void print_profile(std::chrono::steady_clock::time_point start_time);
 
+        Database &db;
         WorkQueue<IndexJob> db_queue;
+        std::thread db_thread;
 
         std::atomic<long long> file_read_time_us{0};
         std::atomic<long long> tokenize_time_us{0};

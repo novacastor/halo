@@ -1,46 +1,61 @@
-[2026-07-11 16:28:35] [INFO] Initializing Subsystems. 
-[2026-07-11 16:28:35] [INFO] Database successfully configured. 
-[2026-07-11 16:28:35] [INFO] Loaded 27338 existing file mtimes
-[2026-07-11 16:28:35] [INFO] Query Engine successfully initalized. 
-[2026-07-11 16:28:35] [INFO] Configured Wayland Platform
-[2026-07-11 16:28:35] [INFO] GLFW window context created successfully. 
-[2026-07-11 16:28:35] [INFO] FileSystem Crawl Complete. 
-[2026-07-11 16:28:37] [INFO] Finished indexing filesystem. 
-[2026-07-11 16:28:37] [INFO] Waiting for File Indexing to Finish. 
-[2026-07-11 16:29:05] [INFO] File Indexing complete. 
-[2026-07-11 16:29:05] [INFO] 
+[2026-07-12 01:17:15] [INFO] Initializing Subsystems. 
+[2026-07-12 01:17:15] [INFO] Database successfully configured. 
+[2026-07-12 01:17:15] [INFO] Loaded 27535 existing file mtimes
+[2026-07-12 01:17:15] [INFO] Query Engine successfully initalized. 
+[2026-07-12 01:17:15] [INFO] FileWatcher subsystem initialized.
+[2026-07-12 01:17:15] [INFO] Configured Wayland Platform
+[2026-07-12 01:17:15] [INFO] GLFW window context created successfully. 
+[2026-07-12 01:17:16] [INFO] FileSystem Crawl Complete. 
+[2026-07-12 01:17:17] [INFO] Finished indexing filesystem. 
+[2026-07-12 01:17:17] [INFO] Waiting for File Indexing to Finish. 
+[2026-07-12 01:17:17] [INFO] File Indexing complete. 
+[2026-07-12 01:17:17] [INFO] 
 
 ====== PROFILE ======
 
-[2026-07-11 16:29:05] [INFO] File Read : 0.001045 s
-[2026-07-11 16:29:05] [INFO] Tokenize  : 0.000248 s
-[2026-07-11 16:29:05] [INFO] Database  : 28.554320 s
-[2026-07-11 16:29:05] [INFO] Total Files processed: 52
-[2026-07-11 16:29:05] [INFO] Total Data processed: 5323 bytes
-[2026-07-11 16:29:05] [INFO] Index build: 28.557000 s
-[2026-07-11 16:29:05] [INFO] Crawl:            224 ms
-[2026-07-11 16:29:05] [INFO] Filesystem sync:  1446 ms
-[2026-07-11 16:29:05] [INFO] Index build:      28565 ms
-[2026-07-11 16:32:01] [INFO] Initializing Subsystems. 
-[2026-07-11 16:32:01] [INFO] Database successfully configured. 
-[2026-07-11 16:32:01] [INFO] Loaded 27338 existing file mtimes
-[2026-07-11 16:32:01] [INFO] Query Engine successfully initalized. 
-[2026-07-11 16:32:01] [INFO] Configured Wayland Platform
-[2026-07-11 16:32:01] [INFO] GLFW window context created successfully. 
-[2026-07-11 16:32:02] [INFO] FileSystem Crawl Complete. 
-[2026-07-11 16:32:03] [INFO] Finished indexing filesystem. 
-[2026-07-11 16:32:03] [INFO] Waiting for File Indexing to Finish. 
-[2026-07-11 16:32:05] [INFO] File Indexing complete. 
-[2026-07-11 16:32:05] [INFO] 
-
-====== PROFILE ======
-
-[2026-07-11 16:32:05] [INFO] File Read : 0.002342 s
-[2026-07-11 16:32:05] [INFO] Tokenize  : 0.030082 s
-[2026-07-11 16:32:05] [INFO] Database  : 2.157006 s
-[2026-07-11 16:32:05] [INFO] Total Files processed: 53
-[2026-07-11 16:32:05] [INFO] Total Data processed: 1779389 bytes
-[2026-07-11 16:32:05] [INFO] Index build: 2.159000 s
-[2026-07-11 16:32:05] [INFO] Crawl:            238 ms
-[2026-07-11 16:32:05] [INFO] Filesystem sync:  1434 ms
-[2026-07-11 16:32:05] [INFO] Index build:      2164 ms
+[2026-07-12 01:17:17] [INFO] File Read : 0.001039 s
+[2026-07-12 01:17:17] [INFO] Tokenize  : 0.001716 s
+[2026-07-12 01:17:17] [INFO] Database  : 0.000000 s
+[2026-07-12 01:17:17] [INFO] Total Files processed: 37
+[2026-07-12 01:17:17] [INFO] Total Data processed: 46359 bytes
+[2026-07-12 01:17:17] [INFO] Index build: 0.022000 s
+[2026-07-12 01:17:17] [INFO] Crawl:            868 ms
+[2026-07-12 01:17:17] [INFO] Filesystem sync:  1470 ms
+[2026-07-12 01:17:17] [INFO] Index build:      29 ms
+[2026-07-12 01:17:19] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/google-chrome/Profile 3/.com.google.Chrome.GbKU8J
+[2026-07-12 01:17:19] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/google-chrome/Profile 3/.com.google.Chrome.GbKU8J
+[2026-07-12 01:17:28] [INFO] File modified: /home/salik/programming/projects/search_engine/imgui.ini
+[2026-07-12 01:17:28] [INFO] File modified: /home/salik/programming/projects/search_engine/imgui.ini
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [ERROR] Couldn't stat file (likely deleted before processing): /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [INFO] File deleted: /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:49] [INFO] Reindexed file: /home/salik/.config/Code - OSS/User/workspaceStorage/b0bd174e2882ac6b98130202a3fea7c9/state.vscdb-journal
+[2026-07-12 01:18:51] [INFO] File modified: /home/salik/programming/projects/search_engine/src/watcher/fileWatcher.cpp
+[2026-07-12 01:18:58] [INFO] File modified: /home/salik/programming/projects/search_engine/src/watcher/fileWatcher.cpp
+[2026-07-12 01:19:05] [INFO] New file created: /home/salik/.config/Code - OSS/User/History/3c8b1c07/VIsz.cpp
+[2026-07-12 01:19:05] [INFO] File modified: /home/salik/.config/Code - OSS/User/History/3c8b1c07/VIsz.cpp

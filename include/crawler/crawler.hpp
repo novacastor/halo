@@ -50,7 +50,7 @@ namespace Engine {
         ".bzl", "BUILD", "WORKSPACE", ".gyp", ".gn", ".gni",
     
         // Docs / text
-        ".md", ".mdx", ".txt", ".rst", ".adoc", ".tex", ".org", ".log",
+        ".md", ".mdx", ".txt", ".rst", ".adoc", ".tex", ".org",
     
         // SQL / data query
         ".sql", ".graphql", ".gql",

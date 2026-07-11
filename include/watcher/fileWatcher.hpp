@@ -2,6 +2,8 @@
 
 #include "engine/log.hpp"
 #include "indexing/workQueue.hpp"
+#include "indexing/indexerPipeline.hpp"
+#include "database/database.hpp"
 #include <sys/inotify.h>
 #include <filesystem>
 #include <vector>
@@ -16,6 +18,7 @@ namespace Engine {
     };
     class FileWatcher{
     public:
+        FileWatcher(Database &db, IndexerPipeline &p) : db(db), pipeline(p) {}
         ~FileWatcher();
 
         bool init();
@@ -25,7 +28,11 @@ namespace Engine {
     private:
         bool add_watcher(const std::string &dir);
         void add_events_to_queue();
-        void handle_event();
+        void handle_events();
+        void handle_new_directory_event(const FileEvent &event);
+        void handle_file_change_event(const FileEvent &event);
+        void handle_file_delete_event(const FileEvent &event);
+        void handle_directory_delete_event(const FileEvent &event);
 
         std::thread events_thread;
         std::thread handler_thread;
@@ -33,5 +40,10 @@ namespace Engine {
         int inotify_fd;
         WorkQueue<FileEvent> event_queue;
         std::unordered_map<int, std::string> watch_descriptors;
+
+        IndexerPipeline &pipeline;
+        Database &db;
     };
 }
+
+//Finally it worked

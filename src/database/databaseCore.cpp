@@ -28,10 +28,12 @@ namespace Engine {
         finalize(insert_token_stmt);
         finalize(insert_token_row_stmt);
 
-        finalize(select_doc_stmt);
-        finalize(insert_doc_stmt);
-        finalize(delete_doc_stmt);
-        finalize(update_mtime_stmt);
+        finalize(select_document_id_stmt);
+        finalize(insert_document_stmt);
+        finalize(delete_document_tokens_stmt);
+        finalize(delete_inverted_dir_stmt);
+        finalize(delete_document_stmt);
+        finalize(update_document_mtime_stmt);
 
         finalize(upsert_fs_stmt);
         finalize(delete_fs_stmt);
@@ -173,30 +175,50 @@ namespace Engine {
     }
     
     bool Database::prepare_document_statements() {
-        const char* insert_doc_sql = "INSERT INTO documents (file_path, mtime) VALUES (?, ?);"; 
-        if (sqlite3_prepare_v2(db_handle, insert_doc_sql, -1, &insert_doc_stmt, nullptr) != SQLITE_OK) {
-            LOG_ERROR(std::string("Failed to prepare doc statement: ") + sqlite3_errmsg(db_handle));
+        const char* insert_document_sql = "INSERT INTO documents (file_path, mtime) VALUES (?, ?);"; 
+        if (sqlite3_prepare_v2(db_handle, insert_document_sql, -1, &insert_document_stmt, nullptr) != SQLITE_OK) {
+            LOG_ERROR(std::string("Failed to prepare insert document statement: ") + sqlite3_errmsg(db_handle));
             return false;
         }
 
-        const char *select_doc_sql = "SELECT id FROM documents WHERE file_path = ?;";
-        if(sqlite3_prepare_v2(db_handle, select_doc_sql, -1, &select_doc_stmt, nullptr) != SQLITE_OK) {
-            LOG_ERROR(std::string("Failed to prepare select document statement: ") + sqlite3_errmsg(db_handle));
+        const char *select_document_id_sql = "SELECT id FROM documents WHERE file_path = ?;";
+        if(sqlite3_prepare_v2(db_handle, select_document_id_sql, -1, &select_document_id_stmt, nullptr) != SQLITE_OK) {
+            LOG_ERROR(std::string("Failed to prepare select document id stateumentment: ") + sqlite3_errmsg(db_handle));
             return false;
         }
     
-        const char* delete_doc_sql = "DELETE FROM inverted_index WHERE document_id = ?;";
-        if(sqlite3_prepare_v2(db_handle, delete_doc_sql, -1, &delete_doc_stmt, nullptr) != SQLITE_OK) {
-            LOG_ERROR(std::string("Failed to prepare delete document statement: ") + sqlite3_errmsg(db_handle));
+        const char* delete_document_tokens_sql = "DELETE FROM inverted_index WHERE document_id = ?;";
+        if(sqlite3_prepare_v2(db_handle, delete_document_tokens_sql, -1, &delete_document_tokens_stmt, nullptr) != SQLITE_OK) {
+            LOG_ERROR(std::string("Failed to prepare delete document tokens statement: ") + sqlite3_errmsg(db_handle));
             return false;
         }
             
-        const char* update_mtime_sql = "UPDATE documents SET mtime = ? WHERE id = ?;";
-        if(sqlite3_prepare_v2(db_handle, update_mtime_sql, -1, &update_mtime_stmt, nullptr) != SQLITE_OK) {
-            LOG_ERROR(std::string("Failed to prepare update mtime statement: ") + sqlite3_errmsg(db_handle));
+        const char* update_document_mtime_sql = "UPDATE documents SET mtime = ? WHERE id = ?;";
+        if(sqlite3_prepare_v2(db_handle, update_document_mtime_sql, -1, &update_document_mtime_stmt, nullptr) != SQLITE_OK) {
+            LOG_ERROR(std::string("Failed to prepare update document mtime statement: ") + sqlite3_errmsg(db_handle));
             return false;
         }
 
+        const char* delete_document_sql = "DELETE FROM documents WHERE id = ?;";
+        if(sqlite3_prepare_v2(db_handle, delete_document_sql, -1, &delete_document_stmt, nullptr) != SQLITE_OK) {
+            LOG_ERROR(std::string("Failed to prepare delete document statement: ") + sqlite3_errmsg(db_handle));
+            return false;
+        }        
+
+        const char* delete_inverted_dir_sql =
+            "DELETE FROM inverted_index WHERE document_id IN "
+            "(SELECT id FROM documents WHERE file_path = ? OR file_path LIKE ?);";
+        if(sqlite3_prepare_v2(db_handle, delete_inverted_dir_sql, -1, &delete_inverted_dir_stmt, nullptr) != SQLITE_OK) {
+            LOG_ERROR(std::string("Failed to prepare delete inverted index by directory statement: ") + sqlite3_errmsg(db_handle));
+            return false;
+        }
+
+        const char* delete_documents_dir_sql = "DELETE FROM documents WHERE file_path = ? OR file_path LIKE ?;";
+        if(sqlite3_prepare_v2(db_handle, delete_documents_dir_sql, -1, &delete_documents_dir_stmt, nullptr) != SQLITE_OK) {
+            LOG_ERROR(std::string("Failed to prepare delete documents by directory statement: ") + sqlite3_errmsg(db_handle));
+            return false;
+        }
+        
         return true;
     }
 

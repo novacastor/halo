@@ -2,7 +2,7 @@
 #include "engine/log.hpp"
 
 namespace Engine {
-    App::App() : db(config.database), query_engine(db) {}
+    App::App() : db(config.database), query_engine(db), pipeline(db), watcher(db, pipeline) {}
 
     App::~App() {
         pipeline.request_stop();
@@ -67,7 +67,7 @@ namespace Engine {
     }
     
     void App::build_index(const CrawlBatch &batch) {       
-        pipeline.execute(batch.code_files, db); 
+        pipeline.execute(batch.code_files); 
     }
 
     void App::print_statistics(Clock::time_point start_time) {
