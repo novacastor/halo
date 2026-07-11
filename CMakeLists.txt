@@ -36,6 +36,8 @@ add_executable(
     src/database/databaseSearch.cpp
 
     src/ui/ui.cpp
+
+    src/watcher/fileWatcher.cpp
 )
 
 target_include_directories(

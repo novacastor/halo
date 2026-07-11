@@ -10,6 +10,7 @@ Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const std::string &
 
     batch.all_files.reserve(10000);
     batch.code_files.reserve(1000);
+    batch.all_directories.reserve(1000);
 
     fs::path root_path(target_path);
 
@@ -22,9 +23,14 @@ Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const std::string &
             const auto& native_name = entry.path().filename().native();
             std::string_view folder_name(native_name.c_str(), native_name.length());
             
-            if(FOLDER_BLACKLIST.find(folder_name) != FOLDER_BLACKLIST.end() || GLOBAL_FOLDER_BLACKLIST.find(folder_name) != GLOBAL_FOLDER_BLACKLIST.end()) {
+            if(Engine::FOLDER_BLACKLIST.find(folder_name) != Engine::FOLDER_BLACKLIST.end() ||
+            Engine::GLOBAL_FOLDER_BLACKLIST.find(folder_name) != Engine::GLOBAL_FOLDER_BLACKLIST.end()) 
+            {
                 it.disable_recursion_pending();
                 continue;
+            }else {
+                path = entry.path().string();
+                batch.all_directories.push_back(path);
             }
         }
         
@@ -36,7 +42,7 @@ Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const std::string &
 
         batch.all_files.push_back({name, path, ext});
 
-        if(EXTENSION_WHITELIST.find(ext) == EXTENSION_WHITELIST.end()) continue;
+        if(Engine::EXTENSION_WHITELIST.find(ext) == Engine::EXTENSION_WHITELIST.end()) continue;
         
         auto ftime = entry.last_write_time();
         long long mtime = std::chrono::duration_cast<std::chrono::seconds>(fs::file_time_type::clock::to_sys(ftime).time_since_epoch()).count();
@@ -48,7 +54,7 @@ Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const std::string &
 
 Engine::CrawlBatch Engine::Crawler::run_crawler(const std::string &target_path) {
     Engine::CrawlBatch batch = process_filesystem_crawl(target_path);
-    LOG_INFO("File System Crawl Complete. ");
+    LOG_INFO("FileSystem Crawl Complete. ");
     return batch;
 }
 

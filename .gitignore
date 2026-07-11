@@ -2,3 +2,8 @@ build/
 *.db
 vcpkg/
 vcpkg_installed/
+AppDir/
+halo.log
+imgui.ini
+*.desktop
+*.AppImage

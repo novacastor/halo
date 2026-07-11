@@ -5,6 +5,7 @@
 #include "search/queryEngine.hpp"
 #include "database/databaseDebug.hpp"
 #include "engine/config.hpp"
+#include "watcher/fileWatcher.hpp"
 #include <string>
 #include <iostream>
 #include <chrono>
@@ -41,6 +42,7 @@ namespace Engine {
         Crawler crawler;
         Database db;    
         IndexerPipeline pipeline;
-        QueryEngine query_engine;    
+        QueryEngine query_engine;  
+        FileWatcher watcher;  
     };
 }

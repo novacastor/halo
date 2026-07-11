@@ -516,8 +516,8 @@ namespace Engine {
         if (pid == 0) {
             std::string line_arg = std::to_string(line_number);
             
-            execlp("kate", "kate", "--line", line_arg.c_str(), file_path.c_str(), nullptr);
-            LOG_ERROR("exelp failed to launch editor");
+            execlp("xdg-open", "xdg-open", file_path.c_str(), nullptr);
+            LOG_ERROR("exelp failed to launch xdg-open");
             exit(EXIT_FAILURE); 
         }
     }

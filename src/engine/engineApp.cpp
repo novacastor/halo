@@ -20,6 +20,10 @@ namespace Engine {
             LOG_ERROR("Query Engine initialization failed. ");
             return false;
         }
+        if(!watcher.init()) {
+            LOG_ERROR("File Watcher initialization failed");
+            return false;
+        }
         return true;
     }
     void App::build_search_index() {
@@ -39,7 +43,8 @@ namespace Engine {
             auto t2 = Clock::now();
             build_index(batch);
             auto t3 = Clock::now();
-
+            watcher.add_watchers(batch.all_directories);
+            
             indexing_active.store(false);   
                        
             LOG_INFO("Crawl:            " + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count()) + " ms");
@@ -65,7 +70,6 @@ namespace Engine {
         pipeline.execute(batch.code_files, db); 
     }
 
-    
     void App::print_statistics(Clock::time_point start_time) {
         print_db_size(config.database);
         auto end_time = Clock::now();

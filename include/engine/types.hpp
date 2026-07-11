@@ -18,6 +18,7 @@ namespace Engine {
     struct CrawlBatch {
         std::vector<FSEntry> all_files;
         std::vector<CodeCandidate> code_files;
+        std::vector<std::string> all_directories;
     };
 
     struct TokenMatch {
