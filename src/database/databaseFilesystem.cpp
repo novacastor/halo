@@ -1,4 +1,5 @@
 #include "database/database.hpp"
+#include "database/databaseUtils.hpp"
 
 namespace Engine {
     bool Database::insert_file(const std::string &name, const std::string &ext, const std::string &path) {
@@ -39,12 +40,12 @@ namespace Engine {
     bool Database::delete_directory(const std::string &dir_path) {
         std::lock_guard<std::mutex> lock(db_mutex);
         
-        if(!delete_fs_dir_stmt) return false;
+        if(!delete_fs_dir_stmt || dir_path.empty()) return false;
         
         sqlite3_reset(delete_fs_dir_stmt);    
         
-        std::string wildcard_path = dir_path;
-        if(wildcard_path.back() != '/') {
+        std::string wildcard_path = escape_like_literal(dir_path);
+        if(dir_path.back() != '/') {
             wildcard_path += '/';
         }
         wildcard_path += '%';
@@ -95,6 +96,7 @@ namespace Engine {
     }
 
     bool Database::file_is_up_to_date(const std::string& path, long long mtime) const {
+        std::lock_guard<std::mutex> lock(db_mutex);
         auto it = existing_mtimes.find(path);
         if(it == existing_mtimes.end() || it->second != mtime) {
             return false;

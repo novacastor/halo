@@ -11,6 +11,11 @@ find_package(imgui CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(SQLite3 REQUIRED)
 
+include(CTest)
+if(BUILD_TESTING)
+    find_package(GTest CONFIG REQUIRED)
+endif()
+
 include_directories(
     include
 )
@@ -39,6 +44,34 @@ add_executable(
 
     src/watcher/fileWatcher.cpp
 )
+
+if(BUILD_TESTING)
+    add_executable(search_engine_tests
+        tests/tokenizer_tests.cpp
+        tests/search_engine_tests.cpp
+        tests/crawler_tests.cpp
+        tests/database_tests.cpp
+        tests/indexer_pipeline_tests.cpp
+        tests/file_watcher_tests.cpp
+        tests/engine_app_tests.cpp
+        tests/concurrency_tests.cpp
+        tests/engine_support_tests.cpp
+        src/engine/engineApp.cpp
+        src/crawler/crawler.cpp
+        src/indexing/indexerPipeline.cpp
+        src/watcher/fileWatcher.cpp
+        src/search/queryEngine.cpp
+        src/database/databaseCore.cpp
+        src/database/databaseDocuments.cpp
+        src/database/databaseFilesystem.cpp
+        src/database/databaseDebug.cpp
+        src/database/databaseSearch.cpp
+        src/engine/log.cpp
+    )
+    target_link_libraries(search_engine_tests PRIVATE SQLite3::SQLite3 GTest::gtest_main)
+    include(GoogleTest)
+    gtest_discover_tests(search_engine_tests)
+endif()
 
 target_include_directories(
     search_engine 

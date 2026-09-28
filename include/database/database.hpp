@@ -42,7 +42,7 @@ namespace Engine {
         void begin_bulk_index();
         void end_bulk_index();
 
-        std::vector<MatchResult> execute_phrase_search(const std::vector<TokenMatch>& query_tokens, int limit = 50);
+        std::vector<MatchResult> execute_terms_search(const std::vector<TokenMatch>& query_tokens, int limit = 50);
         std::vector<FileMatch> execute_filename_search(const std::string &pattern);
         
     private:
@@ -78,6 +78,6 @@ namespace Engine {
         void drop_idx_tokens_table();
         void optimize_search_indexes();
         
-        std::mutex db_mutex;
+        mutable std::mutex db_mutex;
     };
 }

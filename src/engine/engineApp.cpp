@@ -1,8 +1,12 @@
 #include "engine/engineApp.hpp"
 #include "engine/log.hpp"
+#include <utility>
 
 namespace Engine {
-    App::App() : db(config.database), query_engine(db), pipeline(db), watcher(db, pipeline) {}
+    App::App() : App(Config{}) {}
+
+    App::App(Config app_config)
+        : config(std::move(app_config)), db(config.database), query_engine(db), pipeline(db), watcher(db, pipeline) {}
 
     App::~App() {
         pipeline.request_stop();
@@ -43,7 +47,9 @@ namespace Engine {
             auto t2 = Clock::now();
             build_index(batch);
             auto t3 = Clock::now();
-            watcher.add_watchers(batch.all_directories);
+            if(!watcher.add_watchers(batch.all_directories)) {
+                LOG_ERROR("Failed to register one or more filesystem watchers.");
+            }
             
             indexing_active.store(false);   
                        
@@ -55,6 +61,9 @@ namespace Engine {
     void App::run() {
         auto start_time = Clock::now();
         build_search_index();
+        if(index_worker.joinable()) {
+            index_worker.join();
+        }
         print_statistics(start_time);
     }
     

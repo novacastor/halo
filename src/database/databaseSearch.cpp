@@ -1,28 +1,31 @@
 #include "database/database.hpp"
+#include "database/databaseUtils.hpp"
+
+#include <string>
+#include <unordered_set>
 
 namespace Engine {
-    static std::string escape_like(const std::string &input) {
-        std::string escaped;
-        escaped.reserve(input.size());
-        for(char c : input) {
-            if(c == '%' || c == '_' || c == '\\') escaped += '\\';
-            escaped += c;
-        }
-        return escaped;
-    }
-
-    std::vector<MatchResult> Database::execute_phrase_search(const std::vector<TokenMatch>& query_tokens, int limit) {
+    std::vector<MatchResult> Database::execute_terms_search(const std::vector<TokenMatch>& query_tokens, int limit) {
         std::vector<MatchResult> result;
         if(query_tokens.empty()) {
-            LOG_ERROR("query phrase empty exiting early. ");
+            LOG_ERROR("Query has no searchable terms; returning no matches.");
             return result;
         }
         std::lock_guard<std::mutex> lock(db_mutex);
+
+        std::vector<std::string> query_terms;
+        std::unordered_set<std::string> unique_terms;
+        for (const auto& token : query_tokens) {
+            if (unique_terms.insert(token.token).second) {
+                query_terms.push_back(token.token);
+            }
+        }
+
         std::string sql =
             "SELECT "
             "    d.file_path, "
             "    i.line_number, "
-            "    (COUNT(*) * 100) + "
+            "    (COUNT(DISTINCT t.text) * 100) + "
             "    CASE "
             "        WHEN d.file_path LIKE '%/.%' THEN -1000 "
             "        WHEN d.file_path LIKE '%/programming/%' COLLATE NOCASE THEN 50 "
@@ -46,7 +49,7 @@ namespace Engine {
             "JOIN documents d ON i.document_id = d.id "
             "WHERE t.text IN (";
 
-        for (size_t i = 0; i < query_tokens.size(); i++) {
+        for (size_t i = 0; i < query_terms.size(); i++) {
             if (i > 0) sql += ", ";
             sql += "?";
         }
@@ -54,6 +57,7 @@ namespace Engine {
         sql +=
             ") "
             "GROUP BY i.document_id, i.line_number "
+            "HAVING COUNT(DISTINCT t.text) = ? "
             "ORDER BY rank_score DESC "
             "LIMIT ?;";
 
@@ -63,11 +67,12 @@ namespace Engine {
             return result;
         }
 
-        for (size_t i = 0; i < query_tokens.size(); i++) {
-            sqlite3_bind_text(stmt, i + 1, query_tokens[i].token.c_str(), -1, SQLITE_TRANSIENT);
+        for (size_t i = 0; i < query_terms.size(); i++) {
+            sqlite3_bind_text(stmt, i + 1, query_terms[i].c_str(), -1, SQLITE_TRANSIENT);
         }
-        
-        sqlite3_bind_int(stmt, query_tokens.size() + 1, limit);
+
+        sqlite3_bind_int(stmt, query_terms.size() + 1, static_cast<int>(query_terms.size()));
+        sqlite3_bind_int(stmt, query_terms.size() + 2, limit);
 
         while (sqlite3_step(stmt) == SQLITE_ROW) {
             std::string file_path = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
@@ -101,7 +106,7 @@ namespace Engine {
             return results;
         }
 
-        std::string like_pattern = "%" + escape_like(pattern) + "%";
+        std::string like_pattern = "%" + escape_like_literal(pattern) + "%";
         sqlite3_bind_text(stmt, 1, like_pattern.c_str(), -1, SQLITE_TRANSIENT);
 
         while(sqlite3_step(stmt) == SQLITE_ROW) {

@@ -1,7 +1,11 @@
 #include "watcher/fileWatcher.hpp"
 #include "crawler/crawler.hpp"
+#include "engine/fileTime.hpp"
 #include <unistd.h>
 #include <filesystem>
+#include <cerrno>
+#include <chrono>
+#include <thread>
 
 #define MAX_EVENTS 1024 
 #define LEN_NAME 128
@@ -11,17 +15,19 @@ namespace Engine {
     FileWatcher::~FileWatcher() {
         stop_requested.store(true);
 
-        if(inotify_fd > 0) close(inotify_fd);
+        if(inotify_fd >= 0) {
+            close(inotify_fd);
+        }
         event_queue.push({-1, 0, ""});
 
         if(events_thread.joinable()) events_thread.join();
         if(handler_thread.joinable()) handler_thread.join();
     }
     bool FileWatcher::init() {
-        inotify_fd = inotify_init();
+        inotify_fd = inotify_init1(IN_NONBLOCK);
 
         if(inotify_fd < 0) {
-            LOG_ERROR("Inofity Init Failed");
+            LOG_ERROR("inotify initialization failed.");
             return false;
         }
 
@@ -38,8 +44,18 @@ namespace Engine {
             LOG_ERROR("Couldn't watch directory: " + dir);
             return false;
         }
-        watch_descriptors[wd] = dir;
+        {
+            std::lock_guard<std::mutex> lock(watch_descriptors_mutex);
+            watch_descriptors[wd] = dir;
+        }
         return true;
+    }
+
+    std::string FileWatcher::get_watch_path(const FileEvent &event) const {
+        std::lock_guard<std::mutex> lock(watch_descriptors_mutex);
+        auto it = watch_descriptors.find(event.wd);
+        if(it == watch_descriptors.end()) return {};
+        return (std::filesystem::path(it->second) / event.name).string();
     }
 
     bool FileWatcher::add_watchers(const std::vector<std::string> &directory_list) {
@@ -51,6 +67,7 @@ namespace Engine {
     }
 
     void FileWatcher::remove_watchers() {
+        std::lock_guard<std::mutex> lock(watch_descriptors_mutex);
         for(auto const &it: watch_descriptors) {
             inotify_rm_watch(inotify_fd, it.first);
         }
@@ -66,14 +83,16 @@ namespace Engine {
 
             if(length < 0) {
                 if(stop_requested.load()) break;
+                if(errno == EAGAIN || errno == EWOULDBLOCK) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                    continue;
+                }
                 LOG_ERROR("Failed to read inotify events. ");
                 continue;
             }
 
             while(i < length) {
                 inotify_event *event = (inotify_event *) &buffer[i];
-                std::filesystem::path p(event->name);
-                std::string ext = p.extension().string();
                 if(event->len) event_queue.push({event->wd, event->mask, event->name});
                 i += EVENT_SIZE + event->len;
             }
@@ -81,13 +100,15 @@ namespace Engine {
     }
 
     void FileWatcher::handle_new_directory_event(const FileEvent &event) {
-        std::string path = watch_descriptors[event.wd] + "/" + event.name;
+        std::string path = get_watch_path(event);
+        if(path.empty()) return;
         add_watcher(path);
         db.add_directory(path);
     }
 
     void FileWatcher::handle_file_change_event(const FileEvent &event) {
-        std::string path = watch_descriptors[event.wd] + "/" + event.name;
+        std::string path = get_watch_path(event);
+        if(path.empty()) return;
         std::string ext = std::filesystem::path(event.name).extension().string();
         
         std::error_code ec;
@@ -97,9 +118,7 @@ namespace Engine {
             return;
         }
 
-        long long mtime = std::chrono::duration_cast<std::chrono::seconds>(
-            std::filesystem::file_time_type::clock::to_sys(ftime).time_since_epoch()
-        ).count();
+        long long mtime = Engine::file_time_to_unix_nanoseconds(ftime);
 
         db.insert_file(event.name, ext, path);
         if(Engine::EXTENSION_WHITELIST.find(ext) != Engine::EXTENSION_WHITELIST.end()) {
@@ -108,7 +127,8 @@ namespace Engine {
     }
 
     void FileWatcher::handle_file_delete_event(const FileEvent &event) {
-        std::string path = watch_descriptors[event.wd] + "/" + event.name;
+        std::string path = get_watch_path(event);
+        if(path.empty()) return;
         std::string ext = std::filesystem::path(event.name).extension().string();
 
         db.delete_file(path);
@@ -118,7 +138,8 @@ namespace Engine {
     }
 
     void FileWatcher::handle_directory_delete_event(const FileEvent &event) {
-        std::string path = watch_descriptors[event.wd] + "/" + event.name;
+        std::string path = get_watch_path(event);
+        if(path.empty()) return;
         db.delete_directory(path);
         db.delete_documents_under_directory(path);
     }
@@ -129,7 +150,8 @@ namespace Engine {
             FileEvent event = event_queue.pop();
 
             if(event.wd == -1) break;
-            std::string path = watch_descriptors[event.wd] + "/" + event.name;
+            std::string path = get_watch_path(event);
+            if(path.empty()) continue;
             std::string ext = std::filesystem::path(event.name).extension().string();
 
             if ( event.mask & IN_CREATE) {

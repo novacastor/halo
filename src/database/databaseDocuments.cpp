@@ -1,4 +1,5 @@
 #include "database/database.hpp"
+#include "database/databaseUtils.hpp"
 
 namespace Engine {
     int Database::upsert_document(const std::string &file_path, long long mtime) {
@@ -20,12 +21,19 @@ namespace Engine {
         if (existing_id != -1) {
             sqlite3_reset(delete_document_tokens_stmt);
             sqlite3_bind_int(delete_document_tokens_stmt, 1, existing_id);
-            sqlite3_step(delete_document_tokens_stmt);
+            if(sqlite3_step(delete_document_tokens_stmt) != SQLITE_DONE) {
+                LOG_ERROR(std::string("Failed to replace document tokens: ") + sqlite3_errmsg(db_handle));
+                return -1;
+            }
 
             sqlite3_reset(update_document_mtime_stmt);
             sqlite3_bind_int64(update_document_mtime_stmt, 1, mtime);
             sqlite3_bind_int(update_document_mtime_stmt, 2, existing_id);
-            sqlite3_step(update_document_mtime_stmt);
+            if(sqlite3_step(update_document_mtime_stmt) != SQLITE_DONE) {
+                LOG_ERROR(std::string("Failed to update document mtime: ") + sqlite3_errmsg(db_handle));
+                return -1;
+            }
+            existing_mtimes[file_path] = mtime;
             
             return existing_id;
         }
@@ -68,13 +76,16 @@ namespace Engine {
     }
 
     bool Database::delete_documents_under_directory(const std::string &dir_path) {
+        std::lock_guard<std::mutex> lock(db_mutex);
+
         if(!db_handle) {
             LOG_ERROR("Database handle missing, can't delete documents under directory.");
             return false;
         }
+        if(dir_path.empty()) return false;
 
-        std::string wildcard_path = dir_path;
-        if(wildcard_path.back() != '/') {
+        std::string wildcard_path = escape_like_literal(dir_path);
+        if(dir_path.back() != '/') {
             wildcard_path += '/';
         }
         wildcard_path += '%';
@@ -95,8 +106,12 @@ namespace Engine {
             return false;
         }
         
+        std::string directory_prefix = dir_path;
+        if(!directory_prefix.empty() && directory_prefix.back() != '/') {
+            directory_prefix += '/';
+        }
         for(auto it = existing_mtimes.begin(); it != existing_mtimes.end();) {
-            if(it->first.compare(0, dir_path.size(), dir_path) == 0) {
+            if(it->first == dir_path || it->first.compare(0, directory_prefix.size(), directory_prefix) == 0) {
                 it = existing_mtimes.erase(it);
             } else {
                 ++it;

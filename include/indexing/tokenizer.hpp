@@ -3,7 +3,6 @@
 #include <string_view>
 #include <vector>
 #include <cctype>
-#include <algorithm>
 #include <unordered_set>
 #include "engine/types.hpp"
 
@@ -20,7 +19,9 @@ namespace Engine {
             
             while(cursor < length) {
                 
-                while(cursor < length && !isalnum(file_content[cursor]) && file_content[cursor] != '_') {
+                while(cursor < length &&
+                      !std::isalnum(static_cast<unsigned char>(file_content[cursor])) &&
+                      file_content[cursor] != '_') {
                     if(file_content[cursor] == '\n') current_line++;
                     cursor++;
                 }
@@ -29,7 +30,9 @@ namespace Engine {
 
                 size_t token_start = cursor;
 
-                while(cursor < length && (isalnum(file_content[cursor]) || file_content[cursor] == '_')) {
+                while(cursor < length &&
+                      (std::isalnum(static_cast<unsigned char>(file_content[cursor])) ||
+                       file_content[cursor] == '_')) {
                     cursor ++;
                 }
 

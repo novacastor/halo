@@ -32,12 +32,14 @@ namespace Engine {
         finalize(insert_document_stmt);
         finalize(delete_document_tokens_stmt);
         finalize(delete_inverted_dir_stmt);
+        finalize(delete_documents_dir_stmt);
         finalize(delete_document_stmt);
         finalize(update_document_mtime_stmt);
 
         finalize(upsert_fs_stmt);
         finalize(delete_fs_stmt);
         finalize(delete_fs_dir_stmt);
+        finalize(add_fs_dir_stmt);
 
         if(db_handle) sqlite3_close(db_handle);
     }
@@ -207,13 +209,14 @@ namespace Engine {
 
         const char* delete_inverted_dir_sql =
             "DELETE FROM inverted_index WHERE document_id IN "
-            "(SELECT id FROM documents WHERE file_path = ? OR file_path LIKE ?);";
+            "(SELECT id FROM documents WHERE file_path = ? OR file_path LIKE ? ESCAPE '\\');";
         if(sqlite3_prepare_v2(db_handle, delete_inverted_dir_sql, -1, &delete_inverted_dir_stmt, nullptr) != SQLITE_OK) {
             LOG_ERROR(std::string("Failed to prepare delete inverted index by directory statement: ") + sqlite3_errmsg(db_handle));
             return false;
         }
 
-        const char* delete_documents_dir_sql = "DELETE FROM documents WHERE file_path = ? OR file_path LIKE ?;";
+        const char* delete_documents_dir_sql =
+            "DELETE FROM documents WHERE file_path = ? OR file_path LIKE ? ESCAPE '\\';";
         if(sqlite3_prepare_v2(db_handle, delete_documents_dir_sql, -1, &delete_documents_dir_stmt, nullptr) != SQLITE_OK) {
             LOG_ERROR(std::string("Failed to prepare delete documents by directory statement: ") + sqlite3_errmsg(db_handle));
             return false;
@@ -257,9 +260,17 @@ namespace Engine {
             return false;
         }
 
-        const char* delete_fs_dir_sql = "DELETE FROM filesystem_index WHERE file_path = ? OR file_path LIKE ?;";
+        const char* delete_fs_dir_sql =
+            "DELETE FROM filesystem_index WHERE file_path = ? OR file_path LIKE ? ESCAPE '\\';";
         if(sqlite3_prepare_v2(db_handle, delete_fs_dir_sql, -1, &delete_fs_dir_stmt, nullptr) != SQLITE_OK) {
             LOG_ERROR(std::string("Failed to prepare delete filesystem directory statement: ") + sqlite3_errmsg(db_handle));
+            return false;
+        }
+
+        const char* add_fs_dir_sql =
+            "INSERT OR REPLACE INTO filesystem_index (file_name, file_ext, file_path) VALUES ('', '', ?);";
+        if(sqlite3_prepare_v2(db_handle, add_fs_dir_sql, -1, &add_fs_dir_stmt, nullptr) != SQLITE_OK) {
+            LOG_ERROR(std::string("Failed to prepare add filesystem directory statement: ") + sqlite3_errmsg(db_handle));
             return false;
         }
 

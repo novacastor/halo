@@ -12,7 +12,7 @@ namespace Engine {
 
     struct CodeCandidate {
         std::string path;
-        long long mtime;
+        long long mtime; // Unix timestamp in nanoseconds.
     };
 
     struct CrawlBatch {

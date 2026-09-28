@@ -11,7 +11,8 @@ namespace Engine {
 
         bool init();
         std::vector<FileMatch> search_filename(const std::string &file_name);
-        std::vector<MatchResult> search_phrase(const std::string &query_phrase);
+        // Returns lines containing every distinct query term; term order is ignored.
+        std::vector<MatchResult> search_terms(const std::string &query_text);
     private:
         Database &db;
     };

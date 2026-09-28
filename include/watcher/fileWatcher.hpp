@@ -9,6 +9,7 @@
 #include <vector>
 #include <thread>
 #include <unordered_map>
+#include <mutex>
 
 namespace Engine {
     struct FileEvent {
@@ -27,6 +28,7 @@ namespace Engine {
     
     private:
         bool add_watcher(const std::string &dir);
+        std::string get_watch_path(const FileEvent &event) const;
         void add_events_to_queue();
         void handle_events();
         void handle_new_directory_event(const FileEvent &event);
@@ -37,13 +39,12 @@ namespace Engine {
         std::thread events_thread;
         std::thread handler_thread;
         std::atomic<bool> stop_requested{false};
-        int inotify_fd;
+        int inotify_fd = -1;
         WorkQueue<FileEvent> event_queue;
         std::unordered_map<int, std::string> watch_descriptors;
+        mutable std::mutex watch_descriptors_mutex;
 
         IndexerPipeline &pipeline;
         Database &db;
     };
 }
-
-//Finally it worked

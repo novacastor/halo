@@ -1,7 +1,7 @@
 #include "crawler/crawler.hpp"
+#include "engine/fileTime.hpp"
 #include "engine/log.hpp"
 #include <filesystem>
-#include <chrono>
 
 namespace fs = std::filesystem;
 
@@ -12,7 +12,8 @@ Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const std::string &
     batch.code_files.reserve(1000);
     batch.all_directories.reserve(1000);
 
-    fs::path root_path(target_path);
+    fs::path root_path = fs::absolute(target_path).lexically_normal();
+    batch.all_directories.push_back(root_path.string());
 
     std::string path, name, ext;
     
@@ -20,8 +21,8 @@ Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const std::string &
         const auto &entry = *it;
         
         if(entry.is_directory()) {
-            const auto& native_name = entry.path().filename().native();
-            std::string_view folder_name(native_name.c_str(), native_name.length());
+            const auto native_name = entry.path().filename().native();
+            std::string_view folder_name(native_name);
             
             if(Engine::FOLDER_BLACKLIST.find(folder_name) != Engine::FOLDER_BLACKLIST.end() ||
             Engine::GLOBAL_FOLDER_BLACKLIST.find(folder_name) != Engine::GLOBAL_FOLDER_BLACKLIST.end()) 
@@ -44,8 +45,7 @@ Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const std::string &
 
         if(Engine::EXTENSION_WHITELIST.find(ext) == Engine::EXTENSION_WHITELIST.end()) continue;
         
-        auto ftime = entry.last_write_time();
-        long long mtime = std::chrono::duration_cast<std::chrono::seconds>(fs::file_time_type::clock::to_sys(ftime).time_since_epoch()).count();
+        long long mtime = Engine::file_time_to_unix_nanoseconds(entry.last_write_time());
         
         batch.code_files.push_back({path, mtime});
     }
@@ -57,8 +57,3 @@ Engine::CrawlBatch Engine::Crawler::run_crawler(const std::string &target_path) 
     LOG_INFO("FileSystem Crawl Complete. ");
     return batch;
 }
-
-/*
-cmake --build build
-./build/search_engine
-*/

@@ -6,16 +6,16 @@ namespace Engine {
     QueryEngine::QueryEngine(Engine::Database &db) : db(db) {}
 
     bool QueryEngine::init() {
-        LOG_INFO("Query Engine successfully initalized. ");
+        LOG_INFO("Query engine initialized.");
         return true;
     }
 
-    std::vector<MatchResult> QueryEngine::search_phrase(const std::string &query_phrase) {
-        auto query_tokens = Tokenizer::tokenize(query_phrase);
+    std::vector<MatchResult> QueryEngine::search_terms(const std::string &query_text) {
+        auto query_tokens = Tokenizer::tokenize(query_text);
         if(query_tokens.empty()) {
             return {};
         }
-        return db.execute_phrase_search(query_tokens, 200);
+        return db.execute_terms_search(query_tokens, 200);
     }
 
     std::vector<FileMatch> QueryEngine::search_filename(const std::string &file_name) {

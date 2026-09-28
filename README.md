@@ -24,3 +24,15 @@ run it from the terminal:
 ```bash
 ./Halo-Linux-x86_64.AppImage
 ```
+
+## Running tests
+
+Configure the project with the vcpkg toolchain, then build and run the test suite:
+
+```bash
+cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build build --target search_engine_tests
+ctest --test-dir build --output-on-failure
+```
+
+Tests use GoogleTest and CTest. Set `-DBUILD_TESTING=OFF` to omit the test target.

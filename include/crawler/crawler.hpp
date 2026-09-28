@@ -157,7 +157,7 @@ namespace Engine {
         public:
         CrawlBatch run_crawler(const std::string &target_path);
         CrawlBatch process_filesystem_crawl(const std::string &target_path);
-        bool check_extention(const std::string &ext) {
+        bool check_extension(const std::string &ext) {
             return EXTENSION_WHITELIST.find(ext) != EXTENSION_WHITELIST.end();
         }
 

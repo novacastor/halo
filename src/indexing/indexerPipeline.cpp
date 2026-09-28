@@ -3,6 +3,7 @@
 #include "indexing/threadpool.hpp"
 #include "engine/log.hpp"
 #include <filesystem>
+#include <algorithm>
 
 using Clock = std::chrono::steady_clock;
 
@@ -34,6 +35,7 @@ void Engine::IndexerPipeline::execute(const std::vector<Engine::CodeCandidate> &
     if(rebuild_required) db.begin_bulk_index();
     auto t_start = Clock::now();
     this->batch_jobs(code_candidates);
+    this->wait_for_database();
     if(rebuild_required) db.end_bulk_index();
 
     print_profile(t_start);
@@ -62,8 +64,14 @@ std::string Engine::IndexerPipeline::open_file(const std::string &path) {
 }
 
 void Engine::IndexerPipeline::batch_jobs(const std::vector<Engine::CodeCandidate> &code_candidates) {
-    size_t num_threads = std::thread::hardware_concurrency();
-    if(num_threads == 0) num_threads = 4;
+    if(code_candidates.empty()) return;
+
+    // Leave CPU and memory bandwidth for the interactive app and desktop while
+    // scanning larger workspaces. More workers do not help a single SQLite writer.
+    const size_t available_threads = std::thread::hardware_concurrency();
+    size_t num_threads = std::min<std::size_t>(
+        {4, available_threads == 0 ? 4 : available_threads, code_candidates.size()});
+    if(num_threads == 0) num_threads = 1;
     ThreadPool pool(num_threads);
     
     size_t batch_size = (code_candidates.size() + num_threads - 1)  / num_threads;
@@ -111,7 +119,23 @@ void Engine::IndexerPipeline::add_job_to_queue(const Engine::CodeCandidate &cand
 
     tokenize_time_us += std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count();
 
+    {
+        std::lock_guard<std::mutex> lock(pending_jobs_mutex);
+        ++pending_database_jobs;
+    }
     db_queue.push({candidate.path, move(tokens), false, candidate.mtime});
+}
+
+void Engine::IndexerPipeline::wait_for_database() {
+    std::unique_lock<std::mutex> lock(pending_jobs_mutex);
+    pending_jobs_cv.wait(lock, [this] { return pending_database_jobs == 0; });
+}
+
+void Engine::IndexerPipeline::mark_database_jobs_complete(std::size_t count) {
+    if(count == 0) return;
+    std::lock_guard<std::mutex> lock(pending_jobs_mutex);
+    pending_database_jobs -= count;
+    if(pending_database_jobs == 0) pending_jobs_cv.notify_all();
 }
 
 void Engine::IndexerPipeline::database_writer_thread() {
@@ -126,7 +150,8 @@ void Engine::IndexerPipeline::database_writer_thread() {
         int batch_count = 0;
         while(true) {
             if(stop_requested.load()){
-                LOG_INFO("Stop Requested, flushing current transaction and exiting writer thread. ");
+                LOG_INFO("Stop requested; abandoning this pending database job.");
+                ++batch_count;
                 break; 
             }
 
@@ -149,6 +174,7 @@ void Engine::IndexerPipeline::database_writer_thread() {
         }
         
         db.commit_transaction();
+        mark_database_jobs_complete(batch_count);
         auto t_end = Clock::now();
         db_time_us += std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_start).count();
     }

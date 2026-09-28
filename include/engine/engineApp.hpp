@@ -17,6 +17,7 @@ namespace Engine {
     class App {
     public:
         App();
+        explicit App(Config app_config);
         ~App();
         bool init();
         void run();
