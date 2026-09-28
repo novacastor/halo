@@ -16,7 +16,7 @@ jobs:
       - name: Install System Dependencies for vcpkg
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config autoconf automake libtool build-essential \
+          sudo apt-get install -y pkg-config autoconf autoconf-archive automake libtool build-essential \
                                   libwayland-dev wayland-protocols libxkbcommon-dev \
                                   libgl1-mesa-dev libegl1-mesa-dev xorg-dev
 
