@@ -14,6 +14,7 @@
 #include <thread>
 #include <utility>
 #include <algorithm>
+#include <cmath>
 
 extern char** environ;
 
@@ -315,7 +316,7 @@ namespace Engine {
             const long long total = app.get_pipeline().get_files_total();
             const long long done = app.get_pipeline().get_files_indexed();
             const float fraction = total > 0 ? static_cast<float>(done) / static_cast<float>(total) : 0.0f;
-            ImGui::ProgressBar(fraction, ImVec2(-1.0f, 7.0f));
+            ImGui::ProgressBar(fraction, ImVec2(-1.0f, 7.0f), "");
             ImGui::TextDisabled("Indexing %lld / %lld", done, total);
         } else if (ImGui::Button("Refresh index", ImVec2(-1.0f, 36.0f))) {
             app.build_search_index();
@@ -323,10 +324,36 @@ namespace Engine {
         ImGui::Dummy(ImVec2(0, 14.0f));
         ImGui::Separator();
         ImGui::Dummy(ImVec2(0, 8.0f));
-        ImGui::TextColored(ImVec4(0.28f, 0.58f, 0.39f, 1.0f), "●");
+        const ImVec2 status_icon = ImGui::GetCursorScreenPos();
+        ImDrawList* status_draw = ImGui::GetWindowDrawList();
+        if (indexing) {
+            const float phase = static_cast<float>(ImGui::GetTime()) * 7.0f;
+            const int head = static_cast<int>(phase * 8.0f / 6.2831853f) % 8;
+            for (int i = 0; i < 8; ++i) {
+                const float angle = phase + static_cast<float>(i) * 6.2831853f / 8.0f;
+                const ImVec2 dot(status_icon.x + 9.0f + std::cos(angle) * 6.0f,
+                    status_icon.y + 9.0f + std::sin(angle) * 6.0f);
+                const int distance = (i + 8 - head) % 8;
+                const int alpha = 55 + (7 - distance) * 25;
+                status_draw->AddCircleFilled(dot, 1.7f,
+                    IM_COL32(83, 91, 176, alpha));
+            }
+        } else {
+            const ImVec2 center(status_icon.x + 9.0f, status_icon.y + 9.0f);
+            status_draw->AddCircleFilled(center, 8.0f, IM_COL32(72, 148, 100, 255));
+            status_draw->AddLine(ImVec2(center.x - 3.2f, center.y),
+                ImVec2(center.x - 0.7f, center.y + 2.5f), IM_COL32(255, 255, 255, 255), 1.8f);
+            status_draw->AddLine(ImVec2(center.x - 0.7f, center.y + 2.5f),
+                ImVec2(center.x + 4.0f, center.y - 3.0f), IM_COL32(255, 255, 255, 255), 1.8f);
+        }
+        ImGui::Dummy(ImVec2(18.0f, 18.0f));
         ImGui::SameLine(0, 6.0f * ui_scale);
-        ImGui::TextDisabled("PRIVATE BY DESIGN");
+        ImGui::TextDisabled(indexing ? "INDEXING" : "PRIVATE BY DESIGN");
         ImGui::TextDisabled("Your index stays on this device.");
+        ImGui::Dummy(ImVec2(0, 16.0f * ui_scale));
+        if (ImGui::Button("Quit", ImVec2(-1.0f, 36.0f * ui_scale))) {
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
     }
 
     void UI::draw_mode_switch() {
@@ -349,12 +376,17 @@ namespace Engine {
     void UI::draw_search_region() {
         const bool indexing = app.is_indexing();
         ImGui::TextDisabled("HALO  /  WORKSPACE SEARCH");
-        ImGui::SameLine(ImGui::GetWindowWidth() - 96.0f * ui_scale);
 #if defined(__APPLE__)
-        ImGui::TextDisabled("⌘ K  SEARCH");
+        constexpr const char* shortcut = "⌘ K  SEARCH";
 #else
-        ImGui::TextDisabled("CTRL K  SEARCH");
+        constexpr const char* shortcut = "CTRL K  SEARCH";
 #endif
+        const float shortcut_width = ImGui::CalcTextSize(shortcut).x;
+        const float right_padding = ImGui::GetStyle().WindowPadding.x;
+        const float shortcut_x = std::max(ImGui::GetCursorPosX(),
+            ImGui::GetWindowWidth() - right_padding - shortcut_width);
+        ImGui::SameLine(shortcut_x);
+        ImGui::TextDisabled("%s", shortcut);
         ImGui::Dummy(ImVec2(0, 22.0f * ui_scale));
         if (display_font) ImGui::PushFont(display_font);
         ImGui::TextUnformatted("Find what you need.");
@@ -449,7 +481,7 @@ namespace Engine {
             const long long done = app.get_pipeline().get_files_indexed();
             const float progress = total > 0 ? std::clamp(static_cast<float>(done) / static_cast<float>(total), 0.0f, 1.0f) : 0.0f;
             ImGui::TextWrapped("Building your local index. Search will be ready in a moment.");
-            ImGui::ProgressBar(progress, ImVec2(-1.0f, 8.0f * ui_scale));
+            ImGui::ProgressBar(progress, ImVec2(-1.0f, 8.0f * ui_scale), "");
             ImGui::TextDisabled("%lld of %lld changed files indexed", done, total);
         } else if (last_search_query.size() < 2) {
             ImGui::Dummy(ImVec2(0, 24.0f * ui_scale));

@@ -2,6 +2,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
+#include <string_view>
 #include <vector>
 #include "engine/types.hpp"
 
@@ -24,7 +25,7 @@ namespace Engine {
         ".py", ".pyi", ".pyx", ".pxd",
     
         // JVM languages
-        ".java", ".kt", ".kts", ".scala", ".groovy", ".gradle",
+        ".java", ".kt", ".scala", ".groovy",
     
         // .NET
         ".cs", ".fs", ".fsx", ".vb",
@@ -41,23 +42,12 @@ namespace Engine {
         ".ex", ".exs", ".erl", ".hrl", ".hs", ".ml", ".mli", ".clj", ".cljs",
         ".r", ".jl", ".nim", ".v", ".d", ".cr", ".sol",
     
-        // Config / data / markup
-        ".json", ".jsonc", ".json5", ".yaml", ".yml", ".toml", ".xml", ".ini",
-        ".cfg", ".conf", ".env", ".properties", ".editorconfig",
-    
-        // Build / project files
-        "CMakeLists.txt", ".cmake", "Makefile", ".mk", ".ninja", ".bazel",
-        ".bzl", "BUILD", "WORKSPACE", ".gyp", ".gn", ".gni",
-    
-        // Docs / text
+        // Human-readable documentation and text
         ".md", ".mdx", ".txt", ".rst", ".adoc", ".tex", ".org",
-    
-        // SQL / data query
+
+        // Source query languages
         ".sql", ".graphql", ".gql",
-    
-        // Misc dev-relevant
-        ".proto", ".thrift", ".avsc", ".patch", ".diff", ".gitignore",
-        ".gitattributes", ".dockerfile", "Dockerfile", ".tf", ".tfvars"
+        ".proto", ".thrift"
     };
     
     const std::unordered_set<std::string, StringHash, std::equal_to<>> FOLDER_BLACKLIST = {
@@ -157,8 +147,29 @@ namespace Engine {
         public:
         CrawlBatch run_crawler(const std::string &target_path);
         CrawlBatch process_filesystem_crawl(const std::string &target_path);
-        bool check_extension(const std::string &ext) {
+        bool check_extension(const std::string &ext) const {
             return EXTENSION_WHITELIST.find(ext) != EXTENSION_WHITELIST.end();
+        }
+        bool check_file(const std::string &name, const std::string &ext) const {
+            static constexpr std::string_view excluded_names[] = {
+                "CMakeLists.txt", "Makefile", "GNUmakefile", "build.ninja", "meson.build",
+                "meson_options.txt", "BUILD", "BUILD.bazel", "WORKSPACE", "WORKSPACE.bazel"
+            };
+            for (const auto excluded_name : excluded_names) {
+                if (name == excluded_name) return false;
+            }
+            const auto ends_with = [&name](std::string_view suffix) {
+                return name.size() >= suffix.size() &&
+                    std::string_view(name).substr(name.size() - suffix.size()) == suffix;
+            };
+            static constexpr std::string_view excluded_suffixes[] = {
+                "~", ".bak", ".backup", ".orig", ".old", ".save", ".swp", ".swo", ".tmp", ".temp"
+            };
+            for (const auto suffix : excluded_suffixes) {
+                if (ends_with(suffix)) return false;
+            }
+            if (!check_extension(ext)) return false;
+            return name.size() < 2 || name.front() != '#' || name.back() != '#';
         }
 
     };

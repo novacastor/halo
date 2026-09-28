@@ -102,6 +102,9 @@ namespace Engine {
     void FileWatcher::handle_new_directory_event(const FileEvent &event) {
         std::string path = get_watch_path(event);
         if(path.empty()) return;
+        const std::string name = std::filesystem::path(path).filename().string();
+        if (Engine::FOLDER_BLACKLIST.find(name) != Engine::FOLDER_BLACKLIST.end() ||
+            Engine::GLOBAL_FOLDER_BLACKLIST.find(name) != Engine::GLOBAL_FOLDER_BLACKLIST.end()) return;
         add_watcher(path);
         db.add_directory(path);
     }
@@ -110,6 +113,13 @@ namespace Engine {
         std::string path = get_watch_path(event);
         if(path.empty()) return;
         std::string ext = std::filesystem::path(event.name).extension().string();
+
+        Engine::Crawler crawler;
+        if (!crawler.check_file(event.name, ext)) {
+            db.delete_file(path);
+            db.delete_document(path);
+            return;
+        }
         
         std::error_code ec;
         auto ftime = std::filesystem::last_write_time(path, ec);
@@ -129,10 +139,9 @@ namespace Engine {
     void FileWatcher::handle_file_delete_event(const FileEvent &event) {
         std::string path = get_watch_path(event);
         if(path.empty()) return;
-        std::string ext = std::filesystem::path(event.name).extension().string();
 
         db.delete_file(path);
-        if(EXTENSION_WHITELIST.find(ext) != EXTENSION_WHITELIST.end()) db.delete_document(path);
+        db.delete_document(path);
 
         LOG_INFO("Reindexed file: " + path);
     }

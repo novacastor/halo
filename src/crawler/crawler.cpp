@@ -41,9 +41,9 @@ Engine::CrawlBatch Engine::Crawler::process_filesystem_crawl(const std::string &
         name = entry.path().filename().string();
         ext = entry.path().extension().string();
 
-        batch.all_files.push_back({name, path, ext});
+        if (!check_file(name, ext)) continue;
 
-        if(Engine::EXTENSION_WHITELIST.find(ext) == Engine::EXTENSION_WHITELIST.end()) continue;
+        batch.all_files.push_back({name, path, ext});
         
         long long mtime = Engine::file_time_to_unix_nanoseconds(entry.last_write_time());
         
